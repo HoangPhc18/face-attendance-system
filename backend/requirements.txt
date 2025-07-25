@@ -1,1 +1,32 @@
-# Dependencies Python
+Flask
+Flask-Cors
+Flask-SQLAlchemy
+Flask-Migrate
+python-dotenv
+
+face-recognition
+opencv-python
+dlib
+Pillow
+numpy
+
+scikit-learn
+imutils
+
+# Deep learning cho liveness detection (nếu dùng)
+tensorflow
+# hoặc
+torch
+
+# AI tích hợp
+openai
+google-generativeai
+
+# Bảo mật JWT
+Flask-JWT-Extended
+
+# Xuất báo cáo
+pandas
+openpyxl
+
+requests

@@ -1,1 +1,14 @@
-# Các file/thư mục ignore git
+# Thư mục môi trường ảo Python
+.venv/
+env/
+
+# Các file biên dịch Python
+__pycache__/
+*.pyc
+
+# Thư mục cấu hình của VSCode
+.vscode/
+
+# Các file log hoặc tệp tạm khác
+*.log
+*.tmp

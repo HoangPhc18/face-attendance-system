@@ -16,7 +16,7 @@ imutils
 # Deep learning cho liveness detection (nếu dùng)
 tensorflow
 # hoặc
-torch
+#torch
 
 # AI tích hợp
 openai

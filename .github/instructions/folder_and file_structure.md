@@ -7,7 +7,7 @@ face-attendance-system/
 │   │   ├── __init__.py                # Khởi tạo Flask app
 │   │   ├── routes.py                  # Định nghĩa API endpoints (đăng nhập, chấm công, báo cáo...)
 │   │   ├── models.py                  # Định nghĩa các model DB (User, Attendance, LeaveRequest...)
-│   │   ├── face_recognition.py        # Module nhận diện khuôn mặt
+│   │   ├── face_module.py        # Module nhận diện khuôn mặt
 │   │   ├── liveness_detection.py      # Module chống giả mạo (liveness detection)
 │   │   ├── ai_integration.py          # Tích hợp AI (GPT/Gemini) cho tính lương, chatbot, phân tích dữ liệu
 │   │   ├── utils.py                   # Các hàm hỗ trợ chung (xử lý ảnh, mã hóa...)

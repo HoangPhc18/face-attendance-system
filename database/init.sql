@@ -29,6 +29,7 @@ CREATE TABLE attendance (
     liveness_passed BOOLEAN DEFAULT TRUE,
     device_info VARCHAR(100),
     image_url VARCHAR(255),
+    log_ip VARCHAR(45), -- Lưu IP client khi chấm công
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -54,9 +55,19 @@ CREATE TABLE leave_requests (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Bảng lưu báo cáo AI (tính lương, phân tích, chatbot...)
+CREATE TABLE ai_reports (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    report_type VARCHAR(50) NOT NULL, -- salary, analysis, chatbot...
+    content TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance
 CREATE INDEX idx_attendance_user_id ON attendance(user_id);
 CREATE INDEX idx_faces_user_id ON faces(user_id);
 CREATE INDEX idx_logs_user_id ON logs(user_id);
 CREATE INDEX idx_leave_requests_user_id ON leave_requests(user_id);
 CREATE INDEX idx_leave_requests_status ON leave_requests(status);
+CREATE INDEX idx_ai_reports_user_id ON ai_reports(user_id);

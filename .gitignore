@@ -1,6 +1,6 @@
 # Thư mục môi trường ảo Python
 .venv/
-env/
+.env/
 
 # Các file biên dịch Python
 __pycache__/

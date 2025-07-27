@@ -1,6 +1,26 @@
 # Thư mục môi trường ảo Python
 .venv/
-.env/
+
+# File cấu hình môi trường (bảo mật)
+.env
+backend/.env
+frontend/.env
+
+# File chứa key, token, dữ liệu nhạy cảm
+*.key
+*.pem
+*.crt
+*.p12
+*.db
+*.sqlite3
+*.bak
+
+# Thư mục uploads, models (ảnh, dữ liệu AI)
+uploads/
+backend/uploads/
+frontend/uploads/
+models/
+backend/models/
 
 # Các file biên dịch Python
 __pycache__/
@@ -12,3 +32,7 @@ __pycache__/
 # Các file log hoặc tệp tạm khác
 *.log
 *.tmp
+*.cache
+
+# Node modules (frontend)
+frontend/node_modules/

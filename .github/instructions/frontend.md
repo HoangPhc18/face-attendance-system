@@ -1,15 +1,12 @@
 # Frontend Instructions
 
-This is the frontend of the face attendance system built with React.js.
+Frontend sử dụng React.js, tích hợp webcam, phân quyền giao diện cho nhân viên và quản lý.
 
-Features include:
+**Yêu cầu đặc biệt:**
+- Khi truy cập từ mạng nội bộ: hiển thị giao diện chấm công **không cần đăng nhập** (gửi ảnh lên backend, backend kiểm tra IP), đồng thời cho phép truy cập các chức năng khác.
+- Khi truy cập từ ngoài: chỉ hiển thị giao diện đăng nhập và các chức năng khác (không cho phép chấm công).
+- Khi gửi request chấm công, frontend xử lý phản hồi backend: nếu trả về lỗi "không phải mạng nội bộ" thì ẩn hoặc khóa chức năng chấm công.
 
-- Webcam integration for real-time face check-in
-- Views for employees and managers
-- Viewing and filtering attendance history
-- Exporting reports via API
-- Calling backend endpoints via Axios
-- Uses React Hooks and modular components
-- Runs only within secure internal network (LAN)
+Các chức năng khác (lịch sử, xin nghỉ phép, báo cáo...) yêu cầu đăng nhập tài khoản.
 
-The entry point is `index.js` and the main app component is `App.js`.
+Entry point: `index.js`, component chính: `App.js`.

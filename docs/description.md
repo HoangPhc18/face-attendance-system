@@ -21,7 +21,8 @@ Hệ thống chấm công bằng khuôn mặt ứng dụng công nghệ nhận d
 ### 1.3 Phạm vi áp dụng
 
 - Hệ thống hoạt động trong mạng nội bộ công ty.
-- Nhân viên chỉ có thể chấm công khi kết nối mạng nội bộ.
+- Nhân viên chỉ có thể chấm công khi kết nối mạng nội bộ, **không cần đăng nhập** (chỉ cần khuôn mặt).
+- Khi truy cập từ ngoài mạng nội bộ, chỉ cho phép đăng nhập để sử dụng các chức năng khác (xem lịch sử, xin nghỉ phép, báo cáo...).
 - Hỗ trợ đa nền tảng: giao diện web, có thể mở rộng sang thiết bị kiosk.
 
 ---
@@ -33,6 +34,7 @@ Hệ thống chấm công bằng khuôn mặt ứng dụng công nghệ nhận d
 - Thu thập hình ảnh khuôn mặt qua camera.
 - Nhận diện và xác thực nhân viên dựa trên dữ liệu khuôn mặt đã đăng ký.
 - Ghi nhận thời gian chấm công vào hệ thống.
+- **Chỉ cho phép chấm công khi truy cập từ mạng nội bộ, không yêu cầu đăng nhập.**
 
 ### 2.2 Liveness detection (chống giả mạo)
 
@@ -46,6 +48,8 @@ Hệ thống chấm công bằng khuôn mặt ứng dụng công nghệ nhận d
 
 ### 2.4 Giao diện người dùng
 
+- Khi truy cập từ mạng nội bộ: hiển thị giao diện chấm công không cần đăng nhập và các chức năng khác.
+- Khi truy cập từ ngoài: chỉ hiển thị giao diện đăng nhập và các chức năng khác (không cho phép chấm công).
 - Giao diện web cho nhân viên và quản lý.
 - Hiển thị lịch sử chấm công, thống kê cơ bản.
 - Tích hợp webcam để chấm công trực tiếp qua trình duyệt.
@@ -98,7 +102,8 @@ Hệ thống chấm công bằng khuôn mặt ứng dụng công nghệ nhận d
 
 ### 4.1 Môi trường mạng
 
-- Hệ thống chỉ hoạt động khi thiết bị kết nối vào mạng nội bộ của công ty.
+- Hệ thống chỉ cho phép chấm công khi thiết bị kết nối vào mạng nội bộ của công ty (backend kiểm tra IP client).
+- Khi truy cập từ ngoài, chỉ cho phép đăng nhập và sử dụng các chức năng khác (không cho phép chấm công).
 - Giới hạn truy cập từ bên ngoài để tránh gian lận và rò rỉ dữ liệu.
 - Tối ưu tốc độ xử lý trên mạng LAN để đảm bảo độ trễ thấp khi nhận diện khuôn mặt.
 
@@ -106,6 +111,8 @@ Hệ thống chấm công bằng khuôn mặt ứng dụng công nghệ nhận d
 
 - Mã hóa dữ liệu cá nhân và sinh trắc học.
 - Quản lý phân quyền truy cập nghiêm ngặt.
+- Chấm công không yêu cầu đăng nhập nhưng chỉ cho phép từ mạng nội bộ (backend kiểm tra IP).
+- Các chức năng khác (lịch sử, xin nghỉ phép, báo cáo...) yêu cầu đăng nhập tài khoản.
 - Lưu trữ và xử lý dữ liệu tuân thủ các quy định về bảo vệ thông tin cá nhân.
 
 ### 4.3 Hiệu năng

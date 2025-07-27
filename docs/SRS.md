@@ -26,6 +26,7 @@
 * Xử lý ảnh từ webcam.
 * So sánh đặc trưng khuôn mặt với cơ sở dữ liệu.
 * Trả về kết quả nhận dạng với độ tin cậy.
+* **Chỉ cho phép chấm công khi truy cập từ mạng nội bộ, không yêu cầu đăng nhập.**
 
 ### 2.2 Mô-đun Liveness detection
 
@@ -37,6 +38,7 @@
 
 * Lưu trữ thông tin nhân viên, dữ liệu khuôn mặt, lịch sử chấm công.
 * Cung cấp API CRUD (Create, Read, Update, Delete) cho dữ liệu.
+* **Các chức năng ngoài chấm công (lịch sử, xin nghỉ phép, báo cáo...) yêu cầu đăng nhập và có thể truy cập từ xa.**
 
 ### 2.4 Mô-đun Tính toán giờ làm việc
 
@@ -66,7 +68,9 @@
 
 * Giao tiếp HTTPS toàn hệ thống.
 * Mã hóa dữ liệu khuôn mặt khi lưu trữ.
-* Xác thực người dùng và phân quyền bằng JWT.
+* Chấm công không yêu cầu đăng nhập nhưng chỉ cho phép từ mạng nội bộ (backend kiểm tra IP).
+* Các chức năng khác (lịch sử, xin nghỉ phép, báo cáo...) yêu cầu đăng nhập tài khoản.
+* Xác thực người dùng và phân quyền bằng JWT cho các chức năng ngoài chấm công.
 * Sao lưu dữ liệu định kỳ, đảm bảo khả năng khôi phục.
 
 ---

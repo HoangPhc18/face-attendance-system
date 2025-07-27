@@ -11,7 +11,9 @@
 
 ## 3. Chấm công & Liveness
 - **POST /api/attendance/check**: Chấm công bằng khuôn mặt, kiểm tra liveness (Nhân viên)
-- **POST /api/liveness/check**: Kiểm tra liveness khuôn mặt (Nhân viên)
+  - **Không yêu cầu JWT**
+  - **Chỉ cho phép truy cập từ mạng nội bộ công ty (backend kiểm tra IP)**
+- **POST /api/liveness/check**: Kiểm tra liveness khuôn mặt (Nhân viên, yêu cầu JWT)
 
 ## 4. Lịch sử & Báo cáo
 - **GET /api/attendance/history**: Lấy lịch sử chấm công cá nhân (Nhân viên, Admin)
@@ -28,7 +30,8 @@
 ---
 
 **Lưu ý:**
-- Các API (trừ login) yêu cầu JWT token trong header.
+- API `/api/attendance/check` không yêu cầu JWT, chỉ cho phép truy cập từ mạng nội bộ (IP private, backend kiểm tra).
+- Các API còn lại (trừ login) **bắt buộc** JWT token trong header.
 - Upload ảnh sử dụng `multipart/form-data`.
 - Phân quyền rõ ràng giữa nhân viên và admin.
 

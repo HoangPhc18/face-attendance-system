@@ -21,18 +21,20 @@ graph TD
 ## 2. Mô tả các thành phần
 
 ### 2.1 Frontend
-- Giao diện đăng nhập, đăng ký, chấm công, xem lịch sử, báo cáo.
+- Khi truy cập từ mạng nội bộ: hiển thị giao diện chấm công **không cần đăng nhập** (chỉ cần khuôn mặt), đồng thời cho phép truy cập các chức năng khác.
+- Khi truy cập từ ngoài: chỉ hiển thị giao diện đăng nhập và các chức năng khác (không cho phép chấm công).
 - Tích hợp webcam để chụp ảnh khuôn mặt.
 - Gửi ảnh/video lên backend để nhận diện và xác thực liveness.
 - Hiển thị thông báo, cảnh báo, nhắc nhở.
 
 ### 2.2 Backend
+- API `/api/attendance/check` chỉ cho phép truy cập từ IP mạng nội bộ, **không yêu cầu đăng nhập/JWT**; các API khác vẫn yêu cầu JWT như bình thường.
 - Xử lý API: đăng ký, điểm danh, quản lý người dùng, xuất báo cáo.
 - Tích hợp module nhận diện khuôn mặt (OpenCV, dlib, FaceNet/MTCNN).
 - Tích hợp liveness detection (CNN nhỏ, TensorFlow/PyTorch).
 - Tính toán giờ làm việc, làm thêm, nghỉ phép.
 - Tích hợp AI (tùy chọn): tính lương, chatbot, phân tích dữ liệu.
-- Quản lý phân quyền, xác thực JWT.
+- Quản lý phân quyền, xác thực JWT cho các chức năng ngoài chấm công.
 
 ### 2.3 Database
 - **users**: id, name, face_encoding, role, ...
@@ -47,10 +49,11 @@ graph TD
 2. Ảnh gửi lên backend, xử lý và lưu face encoding vào database.
 
 ### 3.2 Chấm công
-1. Nhân viên truy cập giao diện chấm công, chụp ảnh/video.
-2. Backend kiểm tra liveness.
-3. Nếu hợp lệ, nhận diện khuôn mặt, ghi nhận thời gian vào/ra.
-4. Cập nhật lịch sử chấm công, gửi thông báo nếu có bất thường.
+1. Nhân viên truy cập giao diện chấm công **từ mạng nội bộ** (không cần đăng nhập), chụp ảnh/video.
+2. Backend kiểm tra IP mạng nội bộ, nếu không hợp lệ trả về lỗi và frontend sẽ ẩn/khoá chức năng chấm công.
+3. Backend kiểm tra liveness.
+4. Nếu hợp lệ, nhận diện khuôn mặt, ghi nhận thời gian vào/ra.
+5. Cập nhật lịch sử chấm công, gửi thông báo nếu có bất thường.
 
 ### 3.3 Quản lý & báo cáo
 - Quản lý xem lịch sử, xuất báo cáo Excel/CSV, phê duyệt nghỉ phép.
@@ -95,7 +98,8 @@ erDiagram
 ## 5. Bảo mật & hiệu năng
 - Giao tiếp HTTPS toàn hệ thống.
 - Mã hóa dữ liệu sinh trắc học khi lưu trữ.
-- Xác thực và phân quyền bằng JWT.
+- Xác thực và phân quyền bằng JWT cho các chức năng ngoài chấm công.
+- Chấm công chỉ cho phép từ mạng nội bộ, backend kiểm tra IP client để đảm bảo an toàn.
 - Sao lưu dữ liệu định kỳ, đảm bảo khả năng khôi phục.
 - Tối ưu nhận diện khuôn mặt <1 giây, hỗ trợ xử lý đồng thời nhiều yêu cầu.
 

@@ -40,3 +40,23 @@ CREATE TABLE logs (
     detail TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Bảng yêu cầu nghỉ phép
+CREATE TABLE leave_requests (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    reason TEXT,
+    status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected
+    approved_by INTEGER REFERENCES users(id),
+    approved_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance
+CREATE INDEX idx_attendance_user_id ON attendance(user_id);
+CREATE INDEX idx_faces_user_id ON faces(user_id);
+CREATE INDEX idx_logs_user_id ON logs(user_id);
+CREATE INDEX idx_leave_requests_user_id ON leave_requests(user_id);
+CREATE INDEX idx_leave_requests_status ON leave_requests(status);

@@ -1,0 +1,3 @@
+// Các tiện ích mạng cho frontend (không kiểm tra IP mạng nội bộ ở frontend)
+
+// Có thể bổ sung các hàm gọi API, kiểm tra trạng thái mạng, retry request...

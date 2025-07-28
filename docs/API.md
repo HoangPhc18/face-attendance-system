@@ -9,7 +9,10 @@
 - **POST /api/users/register**: Đăng ký người dùng mới (Admin)
 - **GET /api/users**: Lấy danh sách người dùng (Admin)
 
-## 3. Chấm công & Liveness
+## 3. Đăng ký khuôn mặt, Chấm công & Liveness
+- **POST /api/enroll-face**: Đăng ký khuôn mặt mới (Admin hoặc user có quyền)
+  - **Yêu cầu JWT**
+  - **Chỉ cho phép user có quyền (admin/user được phép)**
 - **POST /api/attendance/check**: Chấm công bằng khuôn mặt, kiểm tra liveness (Nhân viên)
   - **Không yêu cầu JWT**
   - **Chỉ cho phép truy cập từ mạng nội bộ công ty (backend kiểm tra IP)**
@@ -30,6 +33,7 @@
 ---
 
 **Lưu ý:**
+- API `/api/enroll-face` chỉ cho phép user có quyền (admin/user được phép), yêu cầu JWT, kiểm tra role.
 - API `/api/attendance/check` không yêu cầu JWT, chỉ cho phép truy cập từ mạng nội bộ (IP private, backend kiểm tra).
 - Các API còn lại (trừ login) **bắt buộc** JWT token trong header.
 - Upload ảnh sử dụng `multipart/form-data`.

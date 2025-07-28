@@ -24,7 +24,9 @@ This document defines the API design constraints and requirements for the projec
 - `POST /api/users/register`: Register a new user. Admin only.
 - `GET /api/users`: List all users. Admin only.
 
-### 3. Attendance & Liveness
+
+### 3. Attendance, Enroll & Liveness
+- `POST /api/enroll-face`: Register new face (enroll). **Requires JWT, only for user with permission (admin/user được phép)**
 - `POST /api/attendance/check`: Employee checks in/out using face recognition and liveness detection. Requires image upload.
   - **No JWT required**
   - **Only accessible from internal network (backend checks IP)**

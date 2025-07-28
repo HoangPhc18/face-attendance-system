@@ -20,13 +20,15 @@
 
 ## 2. Mô-đun chính
 
-### 2.1 Mô-đun Nhận diện khuôn mặt
+### 2.1 Mô-đun Nhận diện khuôn mặt & Đăng ký khuôn mặt
 
 * Sử dụng OpenCV kết hợp FaceNet hoặc MTCNN.
 * Xử lý ảnh từ webcam.
-* So sánh đặc trưng khuôn mặt với cơ sở dữ liệu.
-* Trả về kết quả nhận dạng với độ tin cậy.
-* **Chỉ cho phép chấm công khi truy cập từ mạng nội bộ, không yêu cầu đăng nhập.**
+* Tách riêng 2 module:
+  - `face_enroll.py`: Đăng ký khuôn mặt mới, chỉ cho phép user có quyền (admin/user được phép), xác thực JWT, kiểm tra role.
+  - `face_attendance.py`: Chấm công, chỉ xử lý nhận diện, so sánh với embedding đã lưu, ghi nhận check-in/out.
+* API `/api/enroll-face`: Đăng ký khuôn mặt mới, yêu cầu xác thực và phân quyền.
+* API `/api/attendance/check`: Chấm công, chỉ cho phép từ mạng nội bộ, không yêu cầu đăng nhập.
 
 ### 2.2 Mô-đun Liveness detection
 
@@ -38,7 +40,8 @@
 
 * Lưu trữ thông tin nhân viên, dữ liệu khuôn mặt, lịch sử chấm công.
 * Cung cấp API CRUD (Create, Read, Update, Delete) cho dữ liệu.
-* **Các chức năng ngoài chấm công (lịch sử, xin nghỉ phép, báo cáo...) yêu cầu đăng nhập và có thể truy cập từ xa.**
+* Đăng ký khuôn mặt mới và chấm công được tách thành 2 API/module riêng biệt, phân quyền rõ ràng.
+* Các chức năng ngoài chấm công (lịch sử, xin nghỉ phép, báo cáo...) yêu cầu đăng nhập và có thể truy cập từ xa.
 
 ### 2.4 Mô-đun Tính toán giờ làm việc
 

@@ -5,6 +5,9 @@
 - Hệ thống gồm 3 thành phần chính:
   - **Frontend**: ReactJS (giao diện web cho nhân viên và quản lý)
   - **Backend**: Python Flask (RESTful API, xử lý nhận diện khuôn mặt, liveness, quản lý dữ liệu)
+    - **Tách riêng 2 module:**
+      - `face_enroll.py`: Đăng ký khuôn mặt mới (enroll), chỉ cho phép user có quyền (admin/user được phép), xác thực JWT, kiểm tra role.
+      - `face_attendance.py`: Chấm công (attendance), chỉ xử lý nhận diện, so sánh với embedding đã lưu, ghi nhận check-in/out.
   - **Database**: PostgreSQL (lưu trữ thông tin nhân viên, lịch sử chấm công, phân quyền)
 
 - Mô hình hoạt động:
@@ -28,8 +31,9 @@ graph TD
 - Hiển thị thông báo, cảnh báo, nhắc nhở.
 
 ### 2.2 Backend
-- API `/api/attendance/check` chỉ cho phép truy cập từ IP mạng nội bộ, **không yêu cầu đăng nhập/JWT**; các API khác vẫn yêu cầu JWT như bình thường.
-- Xử lý API: đăng ký, điểm danh, quản lý người dùng, xuất báo cáo.
+- API `/api/enroll-face`: Đăng ký khuôn mặt mới, chỉ cho phép user có quyền (admin/user được phép), xác thực JWT, kiểm tra role, gọi module `face_enroll.py`.
+- API `/api/attendance/check`: Chấm công, chỉ xử lý nhận diện, so sánh với embedding đã lưu, ghi nhận check-in/out, gọi module `face_attendance.py`, chỉ cho phép từ mạng nội bộ (có thể không cần JWT).
+- Các API khác (lịch sử, xin nghỉ phép, báo cáo...) vẫn yêu cầu JWT như bình thường.
 - Tích hợp module nhận diện khuôn mặt (OpenCV, dlib, FaceNet/MTCNN).
 - Tích hợp liveness detection (CNN nhỏ, TensorFlow/PyTorch).
 - Tính toán giờ làm việc, làm thêm, nghỉ phép.
@@ -52,12 +56,13 @@ graph TD
 1. Nhân viên truy cập giao diện chấm công **từ mạng nội bộ** (không cần đăng nhập), chụp ảnh/video.
 2. Backend kiểm tra IP mạng nội bộ, nếu không hợp lệ trả về lỗi và frontend sẽ ẩn/khoá chức năng chấm công.
 3. Backend kiểm tra liveness.
-4. Nếu hợp lệ, nhận diện khuôn mặt, ghi nhận thời gian vào/ra.
+4. Nếu hợp lệ, nhận diện khuôn mặt (gọi module `face_attendance.py`), ghi nhận thời gian vào/ra.
 5. Cập nhật lịch sử chấm công, gửi thông báo nếu có bất thường.
 
 ### 3.3 Quản lý & báo cáo
 - Quản lý xem lịch sử, xuất báo cáo Excel/CSV, phê duyệt nghỉ phép.
 - AI tự động tính lương, phân tích dữ liệu (nếu tích hợp).
+- Đăng ký khuôn mặt mới (gọi module `face_enroll.py`) chỉ cho phép user có quyền, xác thực JWT, kiểm tra role.
 
 ## 4. Thiết kế cơ sở dữ liệu (ERD)
 

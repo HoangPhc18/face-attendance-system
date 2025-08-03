@@ -1,44 +1,27 @@
+# test_enroll.py
+# Test chụp ảnh, lưu khuôn mặt tạm, và ghi pending_face_id ra file JSON
+
+from face_enroll import capture_face_from_webcam, capture_and_store_face_temp
 import json
-import numpy as np
-import os
-from face_enroll import capture_face_from_webcam, enroll_new_employee
-from face_attendance import match_face  # Import hàm so khớp
 
-def mock_save_embedding(embedding):
-    file_path = "test_faces.json"
+def test_capture_and_enroll_temp():
+    try:
+        print("📸 Đang chụp ảnh từ webcam...")
+        image = capture_face_from_webcam()
+        print("✅ Đã chụp ảnh thành công.")
 
-    # Load embedding cũ
-    data = {}
-    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-        with open(file_path, "r") as f:
-            try:
-                data = json.load(f)
-            except json.JSONDecodeError:
-                print("⚠️ File JSON bị lỗi. Tạo lại file mới.")
-                data = {}
+        print("⏳ Đang lưu khuôn mặt vào bảng pending_faces...")
+        pending_face_id = capture_and_store_face_temp(image)
 
-    # Kiểm tra trùng khuôn mặt
-    if data:
-        known_encodings = [np.array(v) for v in data.values()]
-        _, confidence = match_face(embedding, known_encodings, threshold=0.45)  # Có thể giảm threshold nếu cần
-        if confidence > 0:
-            print(f"❌ Khuôn mặt đã tồn tại trong hệ thống (độ trùng: {confidence:.2f}). Không đăng ký lại.")
-            return
+        print(f"✅ Đã lưu khuôn mặt tạm với pending_face_id = {pending_face_id}")
 
-    # Nếu không trùng thì cho đăng ký
-    name = input("✅ Khuôn mặt mới. Nhập tên người dùng để lưu: ")
-    data[name] = embedding.tolist()
+        # Ghi pending_face_id ra file last_pending.json
+        with open("last_pending.json", "w") as f:
+            json.dump({"pending_face_id": pending_face_id}, f)
+        print("💾 pending_face_id đã được lưu vào file 'last_pending.json'.")
 
-    with open(file_path, "w") as f:
-        json.dump(data, f, indent=2)
-
-    print(f"✅ Đã lưu embedding của '{name}' vào {file_path}")
+    except Exception as e:
+        print(f"❌ Lỗi khi đăng ký khuôn mặt: {e}")
 
 if __name__ == "__main__":
-    try:
-        print("🧪 Đang chụp ảnh để đăng ký khuôn mặt...")
-        img = capture_face_from_webcam()
-        enroll_new_employee(img, mock_save_embedding)
-        print("✅ Đăng ký khuôn mặt thành công.")
-    except Exception as e:
-        print("❌ Lỗi:", e)
+    test_capture_and_enroll_temp()

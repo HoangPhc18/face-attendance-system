@@ -20,6 +20,14 @@ CREATE TABLE faces (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Bảng lưu khuôn mặt tạm thời (chưa gắn user)
+CREATE TABLE pending_faces (
+    id SERIAL PRIMARY KEY,
+    face_encoding TEXT NOT NULL,
+    image_url VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Bảng điểm danh
 CREATE TABLE attendance (
     id SERIAL PRIMARY KEY,
@@ -50,7 +58,7 @@ CREATE TABLE leave_requests (
     end_date DATE NOT NULL,
     reason TEXT,
     status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected
-    approved_by INTEGER REFERENCES users(id),
+    approved_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     approved_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -71,3 +79,4 @@ CREATE INDEX idx_logs_user_id ON logs(user_id);
 CREATE INDEX idx_leave_requests_user_id ON leave_requests(user_id);
 CREATE INDEX idx_leave_requests_status ON leave_requests(status);
 CREATE INDEX idx_ai_reports_user_id ON ai_reports(user_id);
+CREATE INDEX idx_pending_faces_created_at ON pending_faces(created_at);

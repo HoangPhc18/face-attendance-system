@@ -1,4 +1,4 @@
-from face_attendance import encode_face, match_face
+from .attendance import encode_face, match_face
 import numpy as np
 import json
 import cv2

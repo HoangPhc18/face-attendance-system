@@ -7,7 +7,7 @@ import face_recognition
 import json
 import psycopg2
 from urllib.parse import urlparse
-from config import Config
+from ..config import Config
 
 # ---------------------------
 # Kết nối database

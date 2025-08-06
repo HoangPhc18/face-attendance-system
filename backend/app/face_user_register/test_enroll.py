@@ -1,7 +1,7 @@
 # test_enroll.py
 # Test chụp ảnh, lưu khuôn mặt tạm, và ghi pending_face_id ra file JSON
 
-from face_enroll import capture_face_from_webcam, capture_and_store_face_temp
+from .face_enroll import capture_face_from_webcam, capture_and_store_face_temp
 import json
 
 def test_capture_and_enroll_temp():

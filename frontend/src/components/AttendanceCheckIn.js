@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import WebcamCapture from './WebcamCapture';
-import { Clock, CheckCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react';
-import { api } from '../services/api';
+import LivenessCheck from './LivenessCheck';
+import { Clock, CheckCircle, XCircle, User, Wifi, WifiOff } from 'lucide-react';
+import { checkIn } from '../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 

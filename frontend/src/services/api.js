@@ -42,6 +42,13 @@ export const api = {
     chatbot: (message) => axios.post('/api/ai/chatbot', { message }),
   },
 
+  // Liveness Detection
+  liveness: {
+    checkImage: (imageData) => axios.post('/liveness/check_image', { image: imageData }),
+    checkFrames: (framesData) => axios.post('/liveness/check_frames', { frames: framesData }),
+    getStatus: () => axios.get('/liveness/status'),
+  },
+
   // Admin
   admin: {
     getUsers: () => axios.get('/api/admin/users'),

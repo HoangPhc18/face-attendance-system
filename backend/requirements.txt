@@ -1,16 +1,17 @@
 # Flask và các extension
-Flask>=2.0
-Flask-Cors
+Flask==2.3.3
+Flask-CORS==4.0.0
 Flask-SQLAlchemy
 Flask-Migrate
 Flask-JWT-Extended
 python-dotenv
+Pillow==10.0.1
 
 # Xử lý ảnh và nhận diện khuôn mặt
 face-recognition
 opencv-python
 dlib
-Pillow
+scipy
 numpy
 imutils
 scikit-learn

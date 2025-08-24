@@ -7,20 +7,14 @@ import face_recognition
 import json
 import psycopg2
 from urllib.parse import urlparse
-from ..config import Config
+from ..config.settings import Config
+# Removed liveness detection import - not needed for admin face registration
+from ..core.database import get_db_cursor
 
 # ---------------------------
 # Kết nối database
 # ---------------------------
-def get_db_connection():
-    result = urlparse(Config.SQLALCHEMY_DATABASE_URI)
-    return psycopg2.connect(
-        dbname=result.path[1:],
-        user=result.username,
-        password=result.password,
-        host=result.hostname,
-        port=result.port
-    )
+# Use centralized database connection from core module
 
 # ---------------------------
 # Chụp ảnh từ webcam
@@ -53,34 +47,31 @@ def encode_face(image):
     return encodings[0]  # Lấy khuôn mặt đầu tiên (nếu có nhiều)
 
 # ---------------------------
-# Lưu embedding tạm thời vào pending_faces
+# Lưu embedding tạm thởi vào pending_faces
 # ---------------------------
-def save_pending_embedding(embedding, image_url=None):
-    embedding_json = json.dumps(embedding.tolist() if isinstance(embedding, np.ndarray) else embedding)
-
-    conn = get_db_connection()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                INSERT INTO pending_faces (face_encoding, image_url)
-                VALUES (%s, %s)
-                RETURNING id
-            """, (embedding_json, image_url))
-            pending_id = cur.fetchone()[0]
-        conn.commit()
+def save_pending_embedding(embedding):
+    with get_db_cursor() as cursor:
+        embedding_json = json.dumps(embedding.tolist())
+        cursor.execute(
+            "INSERT INTO pending_faces (face_encoding) VALUES (%s) RETURNING id",
+            (embedding_json,)
+        )
+        pending_id = cursor.fetchone()[0]
         return pending_id
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        conn.close()
 
 # ---------------------------
-# Tích hợp: Chụp ảnh + tạo embedding + lưu vào DB tạm thời
+# Tích hợp: Chụp ảnh + tạo embedding + lưu vào DB tạm thởi
 # ---------------------------
 def capture_and_store_face_temp(image=None):
+    """
+    Chụp ảnh và lưu face encoding vào pending_faces
+    Chỉ dành cho admin đăng ký khuôn mặt mới - không cần liveness detection
+    """
     if image is None:
         image = capture_face_from_webcam()
+    
+    # Chỉ encode khuôn mặt và lưu vào DB - không kiểm tra liveness
+    # Liveness detection chỉ dùng cho attendance check-in/out
     embedding = encode_face(image)
     pending_id = save_pending_embedding(embedding)
     return pending_id

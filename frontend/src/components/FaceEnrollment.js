@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
+import { Camera, User, Mail, Phone, MapPin, Building, Save, ArrowLeft } from 'lucide-react';
 import WebcamCapture from './WebcamCapture';
-import { UserPlus, CheckCircle, AlertCircle } from 'lucide-react';
-import { api } from '../services/api';
+import LivenessCheck from './LivenessCheck';
+import { enrollFace, registerUser } from '../services/api';
 import toast from 'react-hot-toast';
 
 const FaceEnrollment = () => {
-  const [step, setStep] = useState(1); // 1: capture, 2: user info, 3: success
+  const [step, setStep] = useState(1); // 1: liveness, 2: capture, 3: user info, 4: success
   const [capturedImage, setCapturedImage] = useState(null);
   const [pendingId, setPendingId] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [livenessResult, setLivenessResult] = useState(null);
   const [userForm, setUserForm] = useState({
     username: '',
     full_name: '',
@@ -16,29 +18,30 @@ const FaceEnrollment = () => {
     role: 'user'
   });
 
+  const handleLivenessResult = (passed, result) => {
+    setLivenessResult(result);
+    if (passed) {
+      setStep(2); // Chuyển sang bước chụp ảnh
+    }
+  };
+
   const handleFaceCapture = async (imageFile, imagePreview) => {
     setIsProcessing(true);
     
     try {
-      const formData = new FormData();
-      formData.append('image', imageFile);
-      
-      const response = await api.face.enroll(formData);
+      const response = await enrollFace(imageFile);
       
       if (response.data.success) {
         setCapturedImage(imagePreview);
         setPendingId(response.data.pending_id);
-        setStep(2);
-        toast.success('Face captured successfully!');
+        setStep(3); // Chuyển sang bước nhập thông tin user
+        toast.success('Khuôn mặt đã được chụp thành công!');
       } else {
-        toast.error(response.data.message || 'Face capture failed');
+        toast.error(response.data.error || 'Không thể chụp khuôn mặt');
       }
     } catch (error) {
-      if (error.response?.status === 400) {
-        toast.error('No face detected in image. Please try again.');
-      } else {
-        toast.error('Face enrollment failed. Please try again.');
-      }
+      console.error('Face capture error:', error);
+      toast.error('Lỗi khi chụp khuôn mặt');
     } finally {
       setIsProcessing(false);
     }
@@ -51,24 +54,29 @@ const FaceEnrollment = () => {
     });
   };
 
-  const handleUserRegistration = async (e) => {
-    e.preventDefault();
-    setIsProcessing(true);
+  const handleUserRegistration = async () => {
+    if (!userForm.username || !userForm.full_name || !userForm.email) {
+      toast.error('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
 
+    setIsProcessing(true);
+    
     try {
-      const response = await api.face.registerUser({
+      const response = await registerUser({
         ...userForm,
         pending_id: pendingId
       });
-
-      if (response.data.user_id) {
-        setStep(3);
-        toast.success('User registered successfully!');
+      
+      if (response.data.success) {
+        setStep(4); // Chuyển sang bước thành công
+        toast.success('Đăng ký thành công!');
       } else {
-        toast.error('User registration failed');
+        toast.error(response.data.error || 'Đăng ký thất bại');
       }
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Registration failed');
+      console.error('Registration error:', error);
+      toast.error('Lỗi khi đăng ký');
     } finally {
       setIsProcessing(false);
     }
@@ -78,6 +86,7 @@ const FaceEnrollment = () => {
     setStep(1);
     setCapturedImage(null);
     setPendingId(null);
+    setLivenessResult(null);
     setUserForm({
       username: '',
       full_name: '',
@@ -87,77 +96,81 @@ const FaceEnrollment = () => {
   };
 
   return (
-    <div className="enrollment-container">
+    <div className="face-enrollment">
       <div className="enrollment-header">
-        <UserPlus size={32} />
-        <h1>Face Enrollment</h1>
-        <p>Register a new user with face recognition</p>
-      </div>
-
-      <div className="enrollment-steps">
-        <div className={`step ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}`}>
-          <div className="step-number">1</div>
-          <span>Capture Face</span>
-        </div>
-        <div className={`step ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}`}>
-          <div className="step-number">2</div>
-          <span>User Information</span>
-        </div>
-        <div className={`step ${step >= 3 ? 'active' : ''} ${step > 3 ? 'completed' : ''}`}>
-          <div className="step-number">3</div>
-          <span>Complete</span>
+        <h2>Đăng ký khuôn mặt mới</h2>
+        <div className="step-indicator">
+          <div className={`step ${step >= 1 ? 'active' : ''}`}>1</div>
+          <div className={`step ${step >= 2 ? 'active' : ''}`}>2</div>
+          <div className={`step ${step >= 3 ? 'active' : ''}`}>3</div>
+          <div className={`step ${step >= 4 ? 'active' : ''}`}>4</div>
         </div>
       </div>
 
-      <div className="enrollment-content">
-        {step === 1 && (
-          <div className="step-content">
-            <h2>Step 1: Capture Face</h2>
-            <p>Position the person's face in the camera and capture a clear image</p>
-            <WebcamCapture
-              onCapture={handleFaceCapture}
-              isCapturing={isProcessing}
-              showPreview={true}
-            />
+      {step === 1 && (
+        <div className="step-content">
+          <h3>Bước 1: Kiểm tra Liveness Detection</h3>
+          <LivenessCheck
+            onLivenessResult={handleLivenessResult}
+            onCancel={() => setStep(1)}
+            mode="multi"
+          />
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="step-content">
+          <h3>Bước 2: Chụp ảnh khuôn mặt</h3>
+          <WebcamCapture
+            onCapture={handleFaceCapture}
+            isProcessing={isProcessing}
+          />
+          <button 
+            onClick={() => setStep(1)} 
+            className="btn btn-outline mt-4"
+          >
+            <ArrowLeft size={16} />
+            Quay lại
+          </button>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="step-content">
+          <h3>Bước 3: Thông tin người dùng</h3>
+          <div className="captured-preview">
+            <img src={capturedImage} alt="Captured face" />
+            <p>Khuôn mặt đã được chụp thành công</p>
           </div>
-        )}
-
-        {step === 2 && (
-          <div className="step-content">
-            <h2>Step 2: User Information</h2>
-            <div className="captured-preview">
-              <img src={capturedImage} alt="Captured face" />
-              <p>Face captured successfully</p>
-            </div>
-            
-            <form onSubmit={handleUserRegistration} className="user-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="username">Username *</label>
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={userForm.username}
-                    onChange={handleUserFormChange}
-                    required
-                    placeholder="Enter username"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="full_name">Full Name *</label>
-                  <input
-                    type="text"
-                    id="full_name"
-                    name="full_name"
-                    value={userForm.full_name}
-                    onChange={handleUserFormChange}
-                    required
-                    placeholder="Enter full name"
-                  />
-                </div>
+          
+          <form onSubmit={(e) => { e.preventDefault(); handleUserRegistration(); }} className="user-form">
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="username">Username *</label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={userForm.username}
+                  onChange={handleUserFormChange}
+                  required
+                  placeholder="Enter username"
+                />
               </div>
-
+              <div className="form-group">
+                <label htmlFor="full_name">Full Name *</label>
+                <input
+                  type="text"
+                  id="full_name"
+                  name="full_name"
+                  value={userForm.full_name}
+                  onChange={handleUserFormChange}
+                  required
+                  placeholder="Enter full name"
+                />
+              </div>
+            </div>
+            <div className="form-row">
               <div className="form-group">
                 <label htmlFor="email">Email *</label>
                 <input
@@ -170,7 +183,6 @@ const FaceEnrollment = () => {
                   placeholder="Enter email address"
                 />
               </div>
-
               <div className="form-group">
                 <label htmlFor="role">Role</label>
                 <select
@@ -183,51 +195,66 @@ const FaceEnrollment = () => {
                   <option value="admin">Admin</option>
                 </select>
               </div>
-
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={resetEnrollment}
-                  className="btn-secondary"
-                >
-                  Start Over
-                </button>
-                <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="btn-primary"
-                >
-                  {isProcessing ? 'Registering...' : 'Register User'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="step-content success-content">
-            <CheckCircle size={64} className="success-icon" />
-            <h2>Registration Complete!</h2>
-            <p>User has been successfully registered with face recognition.</p>
-            <div className="user-summary">
-              <h3>User Details:</h3>
-              <p><strong>Username:</strong> {userForm.username}</p>
-              <p><strong>Full Name:</strong> {userForm.full_name}</p>
-              <p><strong>Email:</strong> {userForm.email}</p>
-              <p><strong>Role:</strong> {userForm.role}</p>
             </div>
-            <button onClick={resetEnrollment} className="btn-primary">
-              Register Another User
-            </button>
+            
+            <div className="form-actions">
+              <button 
+                type="button"
+                onClick={() => setStep(2)}
+                className="btn btn-outline"
+              >
+                <ArrowLeft size={16} />
+                Quay lại
+              </button>
+              <button 
+                type="submit"
+                disabled={isProcessing}
+                className="btn btn-primary"
+              >
+                {isProcessing ? (
+                  <>Đang xử lý...</>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Đăng ký
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="step-content">
+          <div className="success-content">
+            <User className="success-icon" size={64} />
+            <h2>Đăng ký thành công!</h2>
+            <p>Người dùng đã được đăng ký thành công với nhận diện khuôn mặt.</p>
+            
+            <div className="user-summary">
+              <h3>Thông tin người dùng:</h3>
+              <p><strong>Username:</strong> {userForm.username}</p>
+              <p><strong>Họ tên:</strong> {userForm.full_name}</p>
+              <p><strong>Email:</strong> {userForm.email}</p>
+              <p><strong>Vai trò:</strong> {userForm.role}</p>
+            </div>
+            
+            <div className="success-actions">
+              <button onClick={resetEnrollment} className="btn btn-primary">
+                <Camera size={16} />
+                Đăng ký người dùng khác
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <style jsx>{`
-        .enrollment-container {
-          padding: 2rem;
+        .face-enrollment {
           max-width: 800px;
           margin: 0 auto;
+          padding: 2rem;
         }
 
         .enrollment-header {
@@ -235,136 +262,99 @@ const FaceEnrollment = () => {
           margin-bottom: 2rem;
         }
 
-        .enrollment-header h1 {
-          font-size: 2rem;
-          font-weight: 700;
+        .enrollment-header h2 {
+          margin-bottom: 1rem;
           color: #1f2937;
-          margin: 0.5rem 0;
         }
 
-        .enrollment-header p {
-          color: #6b7280;
-          margin: 0;
-        }
-
-        .enrollment-steps {
+        .step-indicator {
           display: flex;
           justify-content: center;
-          margin-bottom: 3rem;
-          gap: 2rem;
+          gap: 1rem;
+          margin-bottom: 2rem;
         }
 
         .step {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5rem;
-          opacity: 0.5;
-          transition: opacity 0.3s;
-        }
-
-        .step.active {
-          opacity: 1;
-        }
-
-        .step.completed {
-          opacity: 1;
-          color: #059669;
-        }
-
-        .step-number {
-          width: 32px;
-          height: 32px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
           background: #e5e7eb;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 600;
+          font-weight: bold;
+          color: #9ca3af;
+          transition: all 0.3s ease;
         }
 
-        .step.active .step-number {
+        .step.active {
           background: #3b82f6;
           color: white;
         }
 
-        .step.completed .step-number {
-          background: #059669;
-          color: white;
-        }
-
-        .enrollment-content {
-          background: white;
-          padding: 2rem;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
         .step-content {
+          background: white;
+          border-radius: 12px;
+          padding: 2rem;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .step-content h3 {
+          margin-bottom: 1.5rem;
+          color: #1f2937;
           text-align: center;
         }
 
-        .step-content h2 {
-          font-size: 1.5rem;
-          font-weight: 600;
-          color: #1f2937;
-          margin: 0 0 0.5rem 0;
-        }
-
-        .step-content p {
-          color: #6b7280;
-          margin: 0 0 2rem 0;
-        }
-
         .captured-preview {
+          text-align: center;
           margin-bottom: 2rem;
         }
 
         .captured-preview img {
           width: 200px;
-          height: 150px;
+          height: 200px;
+          border-radius: 50%;
           object-fit: cover;
-          border-radius: 8px;
-          border: 2px solid #e5e7eb;
+          border: 4px solid #3b82f6;
+          margin-bottom: 1rem;
         }
 
         .user-form {
-          max-width: 500px;
+          max-width: 600px;
           margin: 0 auto;
-          text-align: left;
         }
 
         .form-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1rem;
+          margin-bottom: 1rem;
         }
 
         .form-group {
-          margin-bottom: 1.5rem;
+          display: flex;
+          flex-direction: column;
         }
 
         .form-group label {
-          display: block;
-          font-weight: 600;
-          color: #374151;
           margin-bottom: 0.5rem;
+          font-weight: 500;
+          color: #374151;
         }
 
         .form-group input,
         .form-group select {
-          width: 100%;
           padding: 0.75rem;
-          border: 2px solid #e5e7eb;
-          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
           font-size: 1rem;
-          transition: border-color 0.2s;
         }
 
         .form-group input:focus,
         .form-group select:focus {
           outline: none;
           border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         .form-actions {
@@ -374,14 +364,21 @@ const FaceEnrollment = () => {
           margin-top: 2rem;
         }
 
-        .btn-primary,
-        .btn-secondary {
+        .btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
           padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
+          border-radius: 6px;
+          font-weight: 500;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
+          border: none;
+        }
+
+        .btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         .btn-primary {
@@ -393,18 +390,18 @@ const FaceEnrollment = () => {
           background: #2563eb;
         }
 
-        .btn-primary:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
+        .btn-outline {
+          background: transparent;
+          color: #6b7280;
+          border: 1px solid #d1d5db;
         }
 
-        .btn-secondary {
-          background: #6b7280;
-          color: white;
+        .btn-outline:hover:not(:disabled) {
+          background: #f9fafb;
         }
 
-        .btn-secondary:hover {
-          background: #4b5563;
+        .mt-4 {
+          margin-top: 1rem;
         }
 
         .success-content {

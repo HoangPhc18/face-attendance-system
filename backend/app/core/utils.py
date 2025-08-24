@@ -104,6 +104,50 @@ def require_auth(f):
     
     return decorated
 
+def require_admin(f):
+    """Decorator to require admin role"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        from .database import get_db_cursor
+        
+        token = request.headers.get('Authorization')
+        
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+        
+        try:
+            if token.startswith('Bearer '):
+                token = token[7:]
+            
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            current_user_id = data['user_id']
+            
+            # Check if user is admin
+            with get_db_cursor() as cursor:
+                cursor.execute("SELECT role FROM users WHERE id = %s", (current_user_id,))
+                result = cursor.fetchone()
+                
+                if not result:
+                    return jsonify({'error': 'User not found'}), 404
+                
+                user_role = result[0]
+                if user_role != 'admin':
+                    return jsonify({
+                        'error': 'Admin access required',
+                        'message': 'Only administrators can perform this action'
+                    }), 403
+                    
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Token has expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'error': 'Token is invalid'}), 401
+        except Exception as e:
+            return jsonify({'error': f'Authorization failed: {str(e)}'}), 500
+        
+        return f(current_user_id, *args, **kwargs)
+    
+    return decorated
+
 def require_internal_network(f):
     """Decorator to require internal network access"""
     @wraps(f)
@@ -117,6 +161,117 @@ def require_internal_network(f):
             }), 403
         
         return f(*args, **kwargs)
+    
+    return decorated
+
+def require_external_auth(f):
+    """Decorator to require authentication for external network users"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        from flask import jsonify, g
+        
+        # Ensure network detection has run
+        if not hasattr(g, 'network_info'):
+            from ..middleware.network_detection import detect_network
+            detect_network()
+        
+        # If internal network, allow without auth
+        if g.is_internal_network:
+            return f(*args, **kwargs)
+        
+        # If external network, require authentication
+        token = request.headers.get('Authorization')
+        
+        if not token:
+            return jsonify({
+                'error': 'Authentication required for external network access',
+                'message': 'Please provide valid JWT token',
+                'network_type': 'external'
+            }), 401
+        
+        try:
+            if token.startswith('Bearer '):
+                token = token[7:]
+            
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            current_user_id = data['user_id']
+            
+            return f(current_user_id, *args, **kwargs)
+            
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Token has expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'error': 'Token is invalid'}), 401
+    
+    return decorated
+
+def require_internal_network_only(f):
+    """Decorator to require internal network access only - no external network allowed"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        from flask import jsonify, g
+        
+        # Ensure network detection has run
+        if not hasattr(g, 'network_info'):
+            from ..middleware.network_detection import detect_network
+            detect_network()
+        
+        # Only allow internal network access
+        if not g.is_internal_network:
+            return jsonify({
+                'error': 'Access denied. This feature is only available from internal network.',
+                'message': 'Face attendance is restricted to internal network only for security.',
+                'network_type': 'external',
+                'client_ip': g.client_ip,
+                'allowed_features': ['leave_requests', 'attendance_history', 'reports']
+            }), 403
+        
+        # Internal network - allow without authentication
+        return f(*args, **kwargs)
+    
+    return decorated
+
+def external_network_limited_auth(f):
+    """Decorator for external network with limited functionality - requires auth"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        from flask import jsonify, g
+        
+        # Ensure network detection has run
+        if not hasattr(g, 'network_info'):
+            from ..middleware.network_detection import detect_network
+            detect_network()
+        
+        # If internal network, allow without auth
+        if g.is_internal_network:
+            return f(*args, **kwargs)
+        
+        # External network - require authentication for limited features
+        token = request.headers.get('Authorization')
+        
+        if not token:
+            return jsonify({
+                'error': 'Authentication required for external network access',
+                'message': 'External network requires login for limited features only.',
+                'network_type': 'external',
+                'client_ip': g.client_ip,
+                'available_features': ['leave_requests', 'attendance_history', 'reports']
+            }), 401
+        
+        try:
+            if token.startswith('Bearer '):
+                token = token[7:]
+            
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            current_user_id = data['user_id']
+            
+            # Pass user_id as first argument for external network users
+            return f(current_user_id, *args, **kwargs)
+            
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Token has expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'error': 'Token is invalid'}), 401
     
     return decorated
 

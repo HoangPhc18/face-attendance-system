@@ -4,7 +4,7 @@ import jwt
 import bcrypt
 from datetime import datetime, timedelta
 from ..core.database import get_db_cursor
-from ..core.utils import create_response, validate_required_fields
+from ..core.utils import create_response, validate_required_fields, require_external_auth
 from ..config.settings import Config
 
 auth_bp = Blueprint('auth', __name__)
@@ -29,9 +29,9 @@ def login():
             if not user:
                 return create_response(False, error='Invalid username or password', status_code=401)
             
-            # For now, skip password verification (implement bcrypt later)
-            # if not bcrypt.checkpw(password.encode('utf-8'), user[5].encode('utf-8')):
-            #     return create_response(False, error='Invalid username or password', status_code=401)
+            # Verify password with bcrypt
+            if not bcrypt.checkpw(password.encode('utf-8'), user[5].encode('utf-8')):
+                return create_response(False, error='Invalid username or password', status_code=401)
             
             # Generate JWT token
             token_payload = {

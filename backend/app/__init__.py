@@ -10,13 +10,14 @@ def create_app():
     # Enable CORS
     CORS(app)
     
-    # Initialize database
-    from .core.database import DatabaseModels
-    try:
-        DatabaseModels.create_tables()
-        print("Database tables created successfully")
-    except Exception as e:
-        print(f"Database initialization error: {e}")
+    # Database tables should be created using setup_database.py
+    # Removed automatic table creation to avoid conflicts
+    
+    # Register network detection middleware
+    @app.before_request
+    def before_request():
+        from .middleware.network_detection import detect_network
+        detect_network()
     
     # Register error handlers
     from .middleware.error_handler import register_error_handlers

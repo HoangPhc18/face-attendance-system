@@ -6,6 +6,7 @@ Flask-Migrate
 Flask-JWT-Extended
 python-dotenv
 Pillow==10.0.1
+bcrypt==4.0.1
 
 # Xử lý ảnh và nhận diện khuôn mặt
 face-recognition

@@ -2,23 +2,16 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from ..core.database import get_db_cursor
-from ..core.utils import create_response, require_auth, validate_required_fields, log_activity
+from ..core.utils import create_response, require_admin, validate_required_fields, log_activity
 
 admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/users', methods=['GET'])
-@require_auth
+@require_admin
 def get_users(current_user_id):
     """Get all users (admin only)"""
     try:
         with get_db_cursor() as cursor:
-            # Check if user is admin
-            cursor.execute("SELECT role FROM users WHERE id = %s", (current_user_id,))
-            user_role = cursor.fetchone()
-            
-            if not user_role or user_role[0] != 'admin':
-                return create_response(False, error='Admin access required', status_code=403)
-            
             # Get all users
             cursor.execute("""
                 SELECT id, username, full_name, email, role, created_at, updated_at
@@ -49,18 +42,11 @@ def get_users(current_user_id):
         return create_response(False, error=f'Failed to get users: {str(e)}', status_code=500)
 
 @admin_bp.route('/users/<int:user_id>', methods=['PUT'])
-@require_auth
+@require_admin
 def update_user(current_user_id, user_id):
     """Update user information (admin only)"""
     try:
         with get_db_cursor() as cursor:
-            # Check if user is admin
-            cursor.execute("SELECT role FROM users WHERE id = %s", (current_user_id,))
-            user_role = cursor.fetchone()
-            
-            if not user_role or user_role[0] != 'admin':
-                return create_response(False, error='Admin access required', status_code=403)
-            
             data = request.get_json()
             allowed_fields = ['username', 'full_name', 'email', 'role']
             
@@ -97,18 +83,11 @@ def update_user(current_user_id, user_id):
         return create_response(False, error=f'Failed to update user: {str(e)}', status_code=500)
 
 @admin_bp.route('/users/<int:user_id>', methods=['DELETE'])
-@require_auth
+@require_admin
 def delete_user(current_user_id, user_id):
     """Delete user (admin only)"""
     try:
         with get_db_cursor() as cursor:
-            # Check if user is admin
-            cursor.execute("SELECT role FROM users WHERE id = %s", (current_user_id,))
-            user_role = cursor.fetchone()
-            
-            if not user_role or user_role[0] != 'admin':
-                return create_response(False, error='Admin access required', status_code=403)
-            
             # Prevent admin from deleting themselves
             if user_id == current_user_id:
                 return create_response(False, error='Cannot delete your own account', status_code=400)
@@ -127,18 +106,11 @@ def delete_user(current_user_id, user_id):
         return create_response(False, error=f'Failed to delete user: {str(e)}', status_code=500)
 
 @admin_bp.route('/leave-requests', methods=['GET'])
-@require_auth
+@require_admin
 def get_all_leave_requests(current_user_id):
     """Get all leave requests (admin only)"""
     try:
         with get_db_cursor() as cursor:
-            # Check if user is admin
-            cursor.execute("SELECT role FROM users WHERE id = %s", (current_user_id,))
-            user_role = cursor.fetchone()
-            
-            if not user_role or user_role[0] != 'admin':
-                return create_response(False, error='Admin access required', status_code=403)
-            
             cursor.execute("""
                 SELECT lr.id, lr.user_id, u.username, u.full_name,
                        lr.start_date, lr.end_date, lr.reason, lr.status,

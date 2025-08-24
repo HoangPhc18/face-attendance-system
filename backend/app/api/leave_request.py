@@ -2,12 +2,12 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, date
 from ..core.database import get_db_cursor
-from ..core.utils import create_response, require_auth, validate_required_fields, log_activity
+from ..core.utils import create_response, require_external_auth, validate_required_fields, log_activity
 
 leave_request_bp = Blueprint('leave_request', __name__)
 
 @leave_request_bp.route('/submit', methods=['POST'])
-@require_auth
+@require_external_auth
 def submit_leave_request(current_user_id):
     """Submit a new leave request"""
     try:
@@ -46,7 +46,7 @@ def submit_leave_request(current_user_id):
         return create_response(False, error=f'Failed to submit leave request: {str(e)}', status_code=500)
 
 @leave_request_bp.route('/list', methods=['GET'])
-@require_auth
+@require_external_auth
 def get_leave_requests(current_user_id):
     """Get leave requests for current user"""
     try:
@@ -81,7 +81,7 @@ def get_leave_requests(current_user_id):
         return create_response(False, error=f'Failed to get leave requests: {str(e)}', status_code=500)
 
 @leave_request_bp.route('/approve/<int:request_id>', methods=['POST'])
-@require_auth
+@require_external_auth
 def approve_leave_request(current_user_id, request_id):
     """Approve a leave request (admin only)"""
     try:

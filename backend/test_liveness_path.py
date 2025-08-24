@@ -18,14 +18,18 @@ def test_model_path():
     print(f"Models directory exists: {os.path.exists(models_dir)}")
     
     if not os.path.exists(models_dir):
-        print(f"\n📁 Creating models directory: {models_dir}")
+        print(f"\nCreating models directory: {models_dir}")
         os.makedirs(models_dir, exist_ok=True)
-        print("✅ Models directory created")
+        print("Models directory created")
     
     if not os.path.exists(model_path):
-        print(f"\n⚠️  Model file not found. Run: python download_liveness_model.py")
+        print(f"\nModel file not found. Run: python download_liveness_model.py")
+        return False
     else:
-        print(f"\n✅ Model file found at: {model_path}")
+        print(f"\nModel file found at: {model_path}")
+        print("Liveness detection setup is correct!")
+    
+    return True
 
 if __name__ == "__main__":
     test_model_path()

@@ -1,1 +1,1 @@
-# Leave request module
+# Leave request module initialization

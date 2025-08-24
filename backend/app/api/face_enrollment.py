@@ -2,16 +2,16 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from ..core.database import get_db_cursor
-from ..core.utils import create_response, require_auth, validate_required_fields, decode_base64_image, log_activity
+from ..core.utils import create_response, require_auth, require_admin, validate_required_fields, decode_base64_image, log_activity
 from ..face_user_register.face_enroll import capture_and_store_face_temp
 import json
 
 face_enrollment_bp = Blueprint('face_enrollment', __name__)
 
 @face_enrollment_bp.route('/enroll', methods=['POST'])
-@require_auth
+@require_admin
 def enroll_face(current_user_id):
-    """Face enrollment endpoint (requires authentication)"""
+    """Face enrollment endpoint (requires admin authentication)"""
     try:
         if 'image' not in request.files:
             return create_response(False, error='No image file provided', status_code=400)
@@ -50,9 +50,9 @@ def enroll_face(current_user_id):
         return create_response(False, error=f'Face enrollment failed: {str(e)}', status_code=500)
 
 @face_enrollment_bp.route('/register', methods=['POST'])
-@require_auth
+@require_admin
 def register_user(current_user_id):
-    """Complete user registration with pending face"""
+    """Complete user registration with pending face (admin only)"""
     try:
         data = request.get_json()
         validate_required_fields(data, ['username', 'full_name', 'email', 'pending_id'])
@@ -118,9 +118,9 @@ def register_user(current_user_id):
         return create_response(False, error=f'User registration failed: {str(e)}', status_code=500)
 
 @face_enrollment_bp.route('/pending', methods=['GET'])
-@require_auth
+@require_admin
 def get_pending_faces(current_user_id):
-    """Get list of pending face enrollments"""
+    """Get list of pending face enrollments (admin only)"""
     try:
         with get_db_cursor() as cursor:
             cursor.execute("""

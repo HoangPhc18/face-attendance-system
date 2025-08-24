@@ -2,14 +2,14 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, date
 from ..core.database import get_db_cursor
-from ..core.utils import create_response, require_internal_network, decode_base64_image, log_activity
+from ..core.utils import create_response, require_internal_network_only, external_network_limited_auth, decode_base64_image, log_activity
 from ..attendance.attendance import process_attendance_image, match_face
 import json
 
 attendance_bp = Blueprint('attendance', __name__)
 
 @attendance_bp.route('/check-in', methods=['POST'])
-@require_internal_network
+@require_internal_network_only
 def check_in():
     """Face recognition check-in endpoint (internal network only)"""
     try:
@@ -57,7 +57,7 @@ def check_in():
                 except json.JSONDecodeError:
                     continue
             
-            # Match face
+            # Internal network only - identify user by face recognition
             match_idx, confidence = match_face(encoding, known_encodings)
             
             if match_idx is None:
@@ -120,16 +120,26 @@ def check_in():
         return create_response(False, error=f'Check-in failed: {str(e)}', status_code=500)
 
 @attendance_bp.route('/history', methods=['GET'])
-def get_attendance_history():
+@external_network_limited_auth
+def get_attendance_history(current_user_id=None):
     """Get attendance history"""
     try:
-        user_id = request.args.get('user_id')
+        # For external network users, restrict to their own records unless admin
+        requested_user_id = request.args.get('user_id')
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 20))
         
         offset = (page - 1) * per_page
+        
+        # Check if user can view other users' records
+        can_view_all = False
+        if current_user_id:
+            with get_db_cursor() as cursor:
+                cursor.execute("SELECT role FROM users WHERE id = %s", (current_user_id,))
+                user_role = cursor.fetchone()
+                can_view_all = user_role and user_role[0] == 'admin'
         
         query = """
             SELECT a.id, a.user_id, u.username, u.full_name, 
@@ -141,9 +151,15 @@ def get_attendance_history():
         """
         params = []
         
-        if user_id:
+        # Apply user restrictions for external network
+        if current_user_id and not can_view_all:
+            # Non-admin external users can only see their own records
             query += " AND a.user_id = %s"
-            params.append(user_id)
+            params.append(current_user_id)
+        elif requested_user_id:
+            # Admin or internal network can filter by specific user
+            query += " AND a.user_id = %s"
+            params.append(requested_user_id)
         
         if start_date:
             query += " AND a.date >= %s"

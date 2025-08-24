@@ -14,10 +14,11 @@ export const api = {
 
   // Face enrollment
   face: {
-    enroll: (imageData) => axios.post('/api/enroll-face', imageData, {
+    enroll: (imageData) => axios.post('/api/face_enrollment/enroll', imageData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }),
-    registerUser: (userData) => axios.post('/api/face/register_face_user', userData),
+    registerUser: (userData) => axios.post('/api/face_enrollment/register', userData),
+    getPendingFaces: () => axios.get('/api/face_enrollment/pending'),
   },
 
   // Attendance
@@ -44,9 +45,9 @@ export const api = {
 
   // Liveness Detection
   liveness: {
-    checkImage: (imageData) => axios.post('/liveness/check_image', { image: imageData }),
-    checkFrames: (framesData) => axios.post('/liveness/check_frames', { frames: framesData }),
-    getStatus: () => axios.get('/liveness/status'),
+    checkImage: (imageData) => axios.post('/api/liveness/check_image', { image: imageData }),
+    checkFrames: (framesData) => axios.post('/api/liveness/check_frames', { frames: framesData }),
+    getStatus: () => axios.get('/api/liveness/status'),
   },
 
   // Admin
@@ -80,5 +81,12 @@ axios.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Export individual functions for backward compatibility
+export const enrollFace = (imageData) => api.face.enroll(imageData);
+export const registerUser = (userData) => api.face.registerUser(userData);
+export const checkIn = (imageData) => api.attendance.checkIn(imageData);
+export const checkLivenessImage = (imageData) => api.liveness.checkImage(imageData);
+export const checkLivenessFrames = (framesData) => api.liveness.checkFrames(framesData);
 
 export default api;

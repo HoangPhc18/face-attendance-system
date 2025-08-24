@@ -2,13 +2,13 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, date
 from ..core.database import get_db_cursor
-from ..core.utils import create_response, require_auth, validate_required_fields, log_activity
+from ..core.utils import create_response, require_external_auth, validate_required_fields, log_activity
 from ..ai_integration.ai_integration import calculate_salary, get_chatbot_response
 
 ai_bp = Blueprint('ai_integration', __name__)
 
 @ai_bp.route('/calculate-salary', methods=['POST'])
-@require_auth
+@require_external_auth
 def calculate_user_salary(current_user_id):
     """Calculate salary using AI"""
     try:
@@ -64,7 +64,7 @@ def calculate_user_salary(current_user_id):
         return create_response(False, error=f'Salary calculation failed: {str(e)}', status_code=500)
 
 @ai_bp.route('/chatbot', methods=['POST'])
-@require_auth
+@require_external_auth
 def chatbot(current_user_id):
     """AI chatbot endpoint"""
     try:

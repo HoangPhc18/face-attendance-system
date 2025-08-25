@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Download, Filter, Search } from 'lucide-react';
-import { api } from '../services/api';
+import api from '../services/api';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
+import { useNetwork } from '../contexts/NetworkContext';
+import FeatureGuard from './FeatureGuard';
 
 const AttendanceHistory = () => {
   const [records, setRecords] = useState([]);
@@ -55,7 +57,7 @@ const AttendanceHistory = () => {
 
   const exportToExcel = async () => {
     try {
-      const response = await api.attendance.export({
+      const response = await api.reports.exportAttendance({
         start_date: filters.startDate,
         end_date: filters.endDate,
         format: 'excel'
@@ -104,11 +106,12 @@ const AttendanceHistory = () => {
   };
 
   return (
-    <div className="attendance-history-container">
-      <div className="history-header">
-        <h1>Attendance History</h1>
-        <p>View and manage your attendance records</p>
-      </div>
+    <FeatureGuard feature="attendance_history">
+      <div className="attendance-history-container">
+        <div className="history-header">
+          <h1>Attendance History</h1>
+          <p>View and manage your attendance records</p>
+        </div>
 
       <div className="filters-section">
         <div className="filters-row">
@@ -486,7 +489,8 @@ const AttendanceHistory = () => {
           }
         }
       `}</style>
-    </div>
+      </div>
+    </FeatureGuard>
   );
 };
 

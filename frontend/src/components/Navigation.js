@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNetwork } from '../contexts/NetworkContext';
+import NetworkStatus from './NetworkStatus';
+import NetworkBanner from './NetworkBanner';
 import { 
   Home, 
   Clock, 
@@ -15,6 +18,7 @@ import {
 
 const Navigation = () => {
   const { user, logout } = useAuth();
+  const { isInternal } = useNetwork();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigationItems = [
@@ -54,6 +58,7 @@ const Navigation = () => {
 
   return (
     <>
+      <NetworkBanner />
       <nav className="navigation">
         <div className="nav-brand">
           <Clock size={24} />
@@ -67,6 +72,7 @@ const Navigation = () => {
         </div>
 
         <div className="nav-user">
+          <NetworkStatus />
           <div className="user-info">
             <div className="user-avatar">
               {user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U'}

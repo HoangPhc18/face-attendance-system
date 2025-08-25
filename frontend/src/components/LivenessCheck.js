@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import { Eye, EyeOff, Camera, CheckCircle, XCircle, Loader } from 'lucide-react';
-import { checkLivenessImage, checkLivenessFrames } from '../services/api';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const LivenessCheck = ({ onLivenessResult, onCancel, mode = 'single' }) => {
@@ -35,7 +35,7 @@ const LivenessCheck = ({ onLivenessResult, onCancel, mode = 'single' }) => {
         return;
       }
 
-      const response = await checkLivenessImage(imageData);
+      const response = await api.liveness.checkImage(imageData);
       const result = response.data;
 
       setLivenessResult(result);
@@ -84,7 +84,7 @@ const LivenessCheck = ({ onLivenessResult, onCancel, mode = 'single' }) => {
         // Thực hiện kiểm tra liveness
         setIsChecking(true);
         try {
-          const response = await checkLivenessFrames(allFrames);
+          const response = await api.liveness.checkFrames(allFrames);
           const result = response.data;
 
           setLivenessResult(result);

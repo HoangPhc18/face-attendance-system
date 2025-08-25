@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, Send, Bot, User } from 'lucide-react';
-import { api } from '../services/api';
+import api from '../services/api';
 import toast from 'react-hot-toast';
+import FeatureGuard from './FeatureGuard';
 
 const ChatBot = () => {
   const [messages, setMessages] = useState([
@@ -86,16 +87,17 @@ const ChatBot = () => {
   };
 
   return (
-    <div className="chatbot-container">
-      <div className="chatbot-header">
-        <div className="header-content">
-          <MessageCircle size={32} />
-          <div>
-            <h1>AI Assistant</h1>
-            <p>Get help with attendance and HR queries</p>
+    <FeatureGuard feature="ai_chatbot">
+      <div className="chatbot-container">
+        <div className="chatbot-header">
+          <div className="header-content">
+            <MessageCircle size={32} />
+            <div>
+              <h1>AI Assistant</h1>
+              <p>Get help with attendance and HR queries</p>
+            </div>
           </div>
         </div>
-      </div>
 
       <div className="chat-area">
         <div className="messages-container">
@@ -419,7 +421,8 @@ const ChatBot = () => {
           }
         }
       `}</style>
-    </div>
+      </div>
+    </FeatureGuard>
   );
 };
 

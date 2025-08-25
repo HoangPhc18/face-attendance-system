@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Plus, Check, X, Eye } from 'lucide-react';
-import { api } from '../services/api';
+import api from '../services/api';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
+import FeatureGuard from './FeatureGuard';
 
 const LeaveRequest = () => {
   const [requests, setRequests] = useState([]);
@@ -87,20 +88,21 @@ const LeaveRequest = () => {
   };
 
   return (
-    <div className="leave-request-container">
-      <div className="leave-header">
-        <div>
-          <h1>Leave Requests</h1>
-          <p>Manage your time off requests</p>
+    <FeatureGuard feature="leave_requests">
+      <div className="leave-request-container">
+        <div className="leave-header">
+          <div>
+            <h1>Leave Requests</h1>
+            <p>Manage your time off requests</p>
+          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="new-request-btn"
+          >
+            <Plus size={20} />
+            New Request
+          </button>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="new-request-btn"
-        >
-          <Plus size={20} />
-          New Request
-        </button>
-      </div>
 
       {showForm && (
         <div className="form-modal">
@@ -582,7 +584,8 @@ const LeaveRequest = () => {
           }
         }
       `}</style>
-    </div>
+      </div>
+    </FeatureGuard>
   );
 };
 

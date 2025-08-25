@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Camera, User, Mail, Phone, MapPin, Building, Save, ArrowLeft } from 'lucide-react';
 import WebcamCapture from './WebcamCapture';
 import LivenessCheck from './LivenessCheck';
-import { enrollFace, registerUser } from '../services/api';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const FaceEnrollment = () => {
@@ -29,7 +29,7 @@ const FaceEnrollment = () => {
     setIsProcessing(true);
     
     try {
-      const response = await enrollFace(imageFile);
+      const response = await api.face.enroll(imageFile);
       
       if (response.data.success) {
         setCapturedImage(imagePreview);
@@ -63,7 +63,7 @@ const FaceEnrollment = () => {
     setIsProcessing(true);
     
     try {
-      const response = await registerUser({
+      const response = await api.face.registerUser({
         ...userForm,
         pending_id: pendingId
       });

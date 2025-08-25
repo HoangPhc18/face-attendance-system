@@ -27,7 +27,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const result = await login(formData.username, formData.password);
+      const result = await login(formData);
       
       if (result.success) {
         toast.success('Login successful!');
@@ -101,7 +101,7 @@ const Login = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx="true">{`
         .login-container {
           min-height: 100vh;
           display: flex;

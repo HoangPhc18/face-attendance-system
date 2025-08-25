@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Clock, Calendar, Users, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
-import { api } from '../services/api';
+import api from '../services/api';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -25,7 +25,7 @@ const Dashboard = () => {
       setLoading(true);
       
       // Fetch attendance stats
-      const statsResponse = await api.attendance.getStats();
+      const statsResponse = await api.statistics.getOverview();
       setStats(statsResponse.data);
 
       // Fetch recent attendance history

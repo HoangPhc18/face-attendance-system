@@ -8,11 +8,12 @@ import Navigation from './components/Navigation';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import EnhancedDashboard from './components/EnhancedDashboard';
-import AttendanceCheckIn from './components/AttendanceCheckIn';
 import EnhancedAttendanceCheckIn from './components/EnhancedAttendanceCheckIn';
+import PublicAttendanceCheckIn from './components/PublicAttendanceCheckIn';
+import HomePage from './components/HomePage';
 import AttendanceHistory from './components/AttendanceHistory';
-import FaceEnrollment from './components/FaceEnrollment';
 import LeaveRequest from './components/LeaveRequest';
+import FaceEnrollment from './components/FaceEnrollment';
 import AdminPanel from './components/AdminPanel';
 import ChatBot from './components/ChatBot';
 import './App.css';
@@ -35,15 +36,15 @@ function App() {
             />
             
             <Routes>
+              <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<Login />} />
-              
+              <Route path="/public-checkin" element={<PublicAttendanceCheckIn />} />
               <Route path="/*" element={
                 <ProtectedRoute>
                   <div className="app-layout">
                     <Navigation />
                     <main className="main-content">
                       <Routes>
-                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard" element={<EnhancedDashboard />} />
                         <Route path="/checkin" element={<EnhancedAttendanceCheckIn />} />
                         <Route path="/attendance" element={<AttendanceHistory />} />
@@ -58,7 +59,7 @@ function App() {
                             <AdminPanel />
                           </ProtectedRoute>
                         } />
-                        <Route path="/chatbot" element={<ChatBot />} />
+                        <Route path="/chat" element={<ChatBot />} />
                       </Routes>
                     </main>
                   </div>

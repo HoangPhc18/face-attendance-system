@@ -154,8 +154,23 @@ def create_admin_user_from_env():
         with get_db_cursor() as cursor:
             # Kiểm tra admin đã tồn tại chưa
             cursor.execute("SELECT id FROM users WHERE username = %s", (admin_username,))
-            if cursor.fetchone():
+            existing_admin = cursor.fetchone()
+            
+            if existing_admin:
                 print(f"ℹ️ Admin user '{admin_username}' already exists")
+                print("🔐 Updating admin password with current .env value...")
+                
+                # Mã hóa mật khẩu mới
+                hashed_password = bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt())
+                
+                # Cập nhật mật khẩu admin
+                cursor.execute("""
+                    UPDATE users 
+                    SET password_hash = %s, updated_at = %s 
+                    WHERE username = %s
+                """, (hashed_password.decode('utf-8'), datetime.now(), admin_username))
+                
+                print(f"✅ Admin password updated successfully")
                 return
             
             # Mã hóa mật khẩu

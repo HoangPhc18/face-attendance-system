@@ -1,22 +1,42 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, RefreshCw, CheckCircle, XCircle, Eye, Shield } from 'lucide-react';
+import { Camera, RefreshCw, CheckCircle, XCircle, Eye, Shield, AlertTriangle } from 'lucide-react';
 import FeatureGuard from './FeatureGuard';
 import NetworkStatus from './NetworkStatus';
-import { attendanceService } from '../services/api';
+import { useNetwork } from '../contexts/NetworkContext';
+import { attendanceService, networkService } from '../services/api';
 import toast from 'react-hot-toast';
 
 const EnhancedAttendanceCheckIn = () => {
+  const { isInternal } = useNetwork();
   const webcamRef = useRef(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState(null);
+  const [networkBlocked, setNetworkBlocked] = useState(false);
   const [livenessStatus, setLivenessStatus] = useState({
     checking: false,
     passed: false,
     score: 0
   });
+
+  useEffect(() => {
+    const checkNetworkAccess = async () => {
+      try {
+        const response = await networkService.getStatus();
+        if (!response.data.is_internal) {
+          setNetworkBlocked(true);
+          toast.error('Attendance check-in is not available from external networks');
+        }
+      } catch (error) {
+        console.error('Network check failed:', error);
+        setNetworkBlocked(true);
+      }
+    };
+
+    checkNetworkAccess();
+  }, []);
 
   const capture = useCallback(() => {
     const imageSrc = webcamRef.current.getScreenshot();
@@ -247,6 +267,40 @@ const EnhancedAttendanceCheckIn = () => {
       </div>
     </div>
   );
+
+  // Block access for external networks
+  if (networkBlocked || !isInternal) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-red-800 mb-2">
+              Access Restricted
+            </h2>
+            <p className="text-red-600 mb-4">
+              Attendance check-in is only available from internal networks for security reasons.
+            </p>
+            <div className="bg-red-100 rounded-lg p-4 mb-4">
+              <h3 className="font-medium text-red-800 mb-2">Available Features for External Networks:</h3>
+              <ul className="text-sm text-red-700 space-y-1">
+                <li>• View attendance history</li>
+                <li>• Submit leave requests</li>
+                <li>• View reports and statistics</li>
+                <li>• Access AI assistant</li>
+              </ul>
+            </div>
+            <button
+              onClick={() => window.location.href = '/dashboard'}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

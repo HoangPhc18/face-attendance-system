@@ -7,18 +7,13 @@ from ..core.utils import create_response, require_internal_network_only, externa
 attendance_extended_bp = Blueprint('attendance_extended', __name__)
 
 @attendance_extended_bp.route('/status', methods=['GET'])
-@external_network_limited_auth
-def get_attendance_status(current_user_id=None):
+def get_attendance_status():
     """Get current attendance status for user"""
     try:
-        # For external network, use authenticated user ID
-        # For internal network, allow checking any user
-        target_user_id = current_user_id
-        if not current_user_id:
-            # Internal network - can specify user_id
-            target_user_id = request.args.get('user_id')
-            if not target_user_id:
-                return create_response(False, error='User ID required', status_code=400)
+        # Get user_id from query parameters
+        target_user_id = request.args.get('user_id')
+        if not target_user_id:
+            return create_response(False, error='User ID required', status_code=400)
         
         today = date.today()
         

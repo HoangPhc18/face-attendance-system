@@ -59,7 +59,7 @@ def login():
     except Exception as e:
         return create_response(False, error=f'Login failed: {str(e)}', status_code=500)
 
-@auth_bp.route('/verify', methods=['POST'])
+@auth_bp.route('/verify', methods=['GET', 'POST'])
 def verify_token():
     """Verify JWT token"""
     try:

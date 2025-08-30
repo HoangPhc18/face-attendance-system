@@ -10,7 +10,6 @@ import {
   UserPlus, 
   Users, 
   MessageCircle, 
-  Settings, 
   LogOut,
   Menu,
   X
@@ -23,7 +22,7 @@ const Navigation = () => {
 
   const navigationItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard', roles: ['user', 'admin'] },
-    { path: '/checkin', icon: Clock, label: 'Check In', roles: ['user', 'admin'] },
+    { path: '/checkin', icon: Clock, label: 'Check In', roles: ['user', 'admin'], requiresInternal: true },
     { path: '/attendance', icon: Calendar, label: 'History', roles: ['user', 'admin'] },
     { path: '/leave', icon: Calendar, label: 'Leave Request', roles: ['user', 'admin'] },
     { path: '/enroll', icon: UserPlus, label: 'Face Enrollment', roles: ['admin'] },
@@ -31,9 +30,19 @@ const Navigation = () => {
     { path: '/chatbot', icon: MessageCircle, label: 'AI Assistant', roles: ['user', 'admin'] },
   ];
 
-  const filteredItems = navigationItems.filter(item => 
-    item.roles.includes(user?.role || 'user')
-  );
+  const filteredItems = navigationItems.filter(item => {
+    // Check role permission
+    if (!item.roles.includes(user?.role || 'user')) {
+      return false;
+    }
+    
+    // Check network requirement for attendance features
+    if (item.requiresInternal && !isInternal) {
+      return false;
+    }
+    
+    return true;
+  });
 
   const handleLogout = () => {
     logout();
@@ -110,7 +119,7 @@ const Navigation = () => {
         </div>
       )}
 
-      <style jsx>{`
+      <style jsx="true">{`
         .navigation {
           display: flex;
           align-items: center;

@@ -14,10 +14,12 @@ import {
 } from 'lucide-react';
 import NetworkBanner from './NetworkBanner';
 import NetworkStatus from './NetworkStatus';
+import { useAuth } from '../contexts/AuthContext';
+import api, { networkService, attendanceService } from '../services/api';
 import FeatureGuard from './FeatureGuard';
-import { attendanceService, networkService } from '../services/api';
 
 const EnhancedDashboard = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     todayHours: 0,
     weekHours: 0,
@@ -35,7 +37,7 @@ const EnhancedDashboard = () => {
         const [networkResponse, featuresResponse, attendanceResponse] = await Promise.all([
           networkService.getStatus(),
           networkService.getFeatures(),
-          attendanceService.getTodayStatus()
+          attendanceService.getTodayStatus(user?.id)
         ]);
         
         setNetworkInfo(networkResponse.data);
@@ -48,8 +50,10 @@ const EnhancedDashboard = () => {
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    if (user?.id) {
+      fetchDashboardData();
+    }
+  }, [user]);
 
   const QuickActionCard = ({ title, icon: Icon, onClick, disabled, disabledReason }) => (
     <div 

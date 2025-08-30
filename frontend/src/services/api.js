@@ -23,7 +23,7 @@ export const attendanceService = {
   checkIn: (data) => api.post('/api/attendance/check-in', data),
   checkOut: (data) => api.post('/api/attendance/check-out', data),
   getHistory: (params) => api.get('/api/attendance/history', { params }),
-  getTodayStatus: () => api.get('/api/attendance/extended/status'),
+  getTodayStatus: (userId) => api.get('/api/attendance/extended/status', { params: { user_id: userId } }),
   getSummary: (params) => api.get('/api/attendance/extended/summary', { params }),
   manualEntry: (data) => api.post('/api/attendance/extended/manual-entry', data),
   bulkUpdate: (data) => api.post('/api/attendance/extended/bulk-update', data),
@@ -140,8 +140,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Only redirect to login if not already on login page
+      if (window.location.pathname !== '/login') {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

@@ -11,7 +11,7 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
         <div className="loading-spinner"></div>
         <p>Loading...</p>
         
-        <style jsx>{`
+        <style jsx="true">{`
           .loading-container {
             display: flex;
             flex-direction: column;

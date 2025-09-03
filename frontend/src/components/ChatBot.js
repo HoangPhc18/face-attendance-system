@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, Send, Bot, User } from 'lucide-react';
-import api from '../services/api';
+import api, { aiService } from '../services/api';
 import toast from 'react-hot-toast';
 import FeatureGuard from './FeatureGuard';
 

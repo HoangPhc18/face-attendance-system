@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Clock, Calendar, Users, TrendingUp, CheckCircle, XCircle } from 'lucide-react';
-import api from '../services/api';
+import api, { attendanceService, reportsService, statisticsService } from '../services/api';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import toast from 'react-hot-toast';
 

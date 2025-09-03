@@ -79,13 +79,24 @@ export const networkService = {
 
 // Admin service
 export const adminService = {
-  getUsers: (params) => api.get('/api/admin/users', { params }),
-  createUser: (data) => api.post('/api/admin/users', data),
-  updateUser: (id, data) => api.put(`/api/admin/users/${id}`, data),
-  deleteUser: (id) => api.delete(`/api/admin/users/${id}`),
-  getSystemStats: () => api.get('/api/admin/stats'),
-  getUserStats: (id) => api.get(`/api/admin/users/${id}/stats`),
-  resetPassword: (id, data) => api.post(`/api/admin/users/${id}/reset-password`, data),
+  // User management
+  getUsers: () => api.get('/api/admin/users'),
+  createUser: (userData) => api.post('/api/admin/users', userData),
+  updateUser: (userId, userData) => api.put(`/api/admin/users/${userId}`, userData),
+  deleteUser: (userId) => api.delete(`/api/admin/users/${userId}`),
+  resetUserPassword: (userId, password) => api.put(`/api/admin/users/${userId}/reset-password`, { password }),
+
+  // Leave request management
+  getLeaveRequests: () => api.get('/api/admin/leave-requests'),
+  approveLeaveRequest: (requestId) => api.put(`/api/admin/leave-requests/${requestId}/approve`),
+  rejectLeaveRequest: (requestId, reason) => api.put(`/api/admin/leave-requests/${requestId}/reject`, { reason }),
+
+  // Dashboard and statistics
+  getDashboardStats: () => api.get('/api/admin/dashboard/stats'),
+  getAllAttendance: (page = 1, limit = 50) => api.get(`/api/admin/attendance/all?page=${page}&limit=${limit}`),
+  
+  // System management
+  getSystemLogs: (page = 1, limit = 100, level = 'all') => api.get(`/api/admin/system/logs?page=${page}&limit=${limit}&level=${level}`)
 };
 
 // AI service
@@ -149,5 +160,20 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Export all services
+// export {
+//   attendanceService,
+//   leaveService,
+//   faceEnrollmentService,
+//   networkService,
+//   livenessService,
+//   adminService,
+//   reportsService,
+//   statisticsService,
+//   aiService,
+//   notificationsService,
+//   uploadsService
+// };
 
 export default api;

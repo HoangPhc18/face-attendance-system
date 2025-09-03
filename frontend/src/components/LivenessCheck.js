@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import { Eye, EyeOff, Camera, CheckCircle, XCircle, Loader } from 'lucide-react';
-import api from '../services/api';
+import api, { livenessService } from '../services/api';
 import toast from 'react-hot-toast';
 
 const LivenessCheck = ({ onLivenessResult, onCancel, mode = 'single' }) => {

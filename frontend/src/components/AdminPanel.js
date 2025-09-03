@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserPlus, Edit, Trash2, Search, Filter } from 'lucide-react';
-import api from '../services/api';
+import api, { adminService, faceEnrollmentService } from '../services/api';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 

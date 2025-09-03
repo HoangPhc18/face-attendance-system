@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Plus, Check, X, Eye } from 'lucide-react';
-import api from '../services/api';
+import api, { leaveService } from '../services/api';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 import FeatureGuard from './FeatureGuard';

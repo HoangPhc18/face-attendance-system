@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Download, Filter, Search } from 'lucide-react';
-import api from '../services/api';
+import api, { attendanceService, reportsService } from '../services/api';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useNetwork } from '../contexts/NetworkContext';

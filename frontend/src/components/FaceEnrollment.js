@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Camera, User, Mail, Phone, MapPin, Building, Save, ArrowLeft } from 'lucide-react';
 import WebcamCapture from './WebcamCapture';
 import LivenessCheck from './LivenessCheck';
-import api from '../services/api';
+import api, { faceEnrollmentService, livenessService } from '../services/api';
 import toast from 'react-hot-toast';
 
 const FaceEnrollment = () => {

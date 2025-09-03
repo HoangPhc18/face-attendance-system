@@ -1,220 +1,323 @@
 # Face Attendance System - Frontend
 
-A modern React.js frontend for the Face Attendance System with webcam integration, real-time face recognition, and comprehensive attendance management.
+Giao diện người dùng cho hệ thống chấm công bằng khuôn mặt với phân quyền theo mạng và vai trò.
 
-## Features
+## 🚀 Tính Năng Chính
 
-- 🎯 **Face Check-in/Check-out** - Webcam-based attendance without login (internal network only)
-- 👤 **Face Enrollment** - Register new users with face recognition
-- 📊 **Dashboard** - Real-time attendance statistics and overview
-- 📅 **Attendance History** - View and export attendance records
-- 🏖️ **Leave Management** - Request and manage time off
-- 👨‍💼 **Admin Panel** - User management and system administration
-- 🤖 **AI Assistant** - Chatbot for HR queries and support
-- 📱 **Responsive Design** - Works on desktop, tablet, and mobile
+### 🔐 **Ma Trận Quyền Hạn**
+- **Internal Network + Admin**: Toàn quyền hệ thống
+- **Internal Network + Employee**: Chấm công không cần đăng nhập + tính năng cơ bản
+- **External Network + Admin**: Đầy đủ quyền admin sau khi đăng nhập
+- **External Network + Employee**: Chỉ xem dữ liệu cá nhân sau khi đăng nhập
 
-## Technology Stack
+### 🌐 **Phân Quyền Theo Mạng**
+- **Mạng nội bộ**: Chấm công bằng khuôn mặt không cần đăng nhập
+- **Mạng bên ngoài**: Bắt buộc đăng nhập, hạn chế tính năng chấm công
 
-- **React.js 19** - Modern UI framework
-- **React Router** - Client-side routing
-- **Axios** - HTTP client for API calls
-- **React Webcam** - Camera integration
-- **Lucide React** - Modern icon library
-- **React Hot Toast** - Notification system
-- **Date-fns** - Date manipulation utilities
+### 👥 **Vai Trò Người Dùng**
+- **Admin**: Quản lý toàn hệ thống, phê duyệt đăng ký khuôn mặt
+- **Employee**: Xem dữ liệu cá nhân, tạo yêu cầu nghỉ phép
 
-## Prerequisites
+## 📦 Cài Đặt
 
-- Node.js 16+ and npm
-- Backend API server running on port 5000
-- Webcam access for face recognition features
+### Yêu Cầu Hệ Thống
+- Node.js 16+ 
+- npm hoặc yarn
+- Backend API đang chạy (mặc định: http://localhost:5000)
 
-## Installation
-
-1. Install dependencies:
+### Bước 1: Cài Đặt Dependencies
 ```bash
 npm install
 ```
 
-2. Create environment file:
+### Bước 2: Cấu Hình Environment
 ```bash
 cp .env.example .env
 ```
 
-3. Configure environment variables in `.env`:
-```
+Chỉnh sửa file `.env`:
+```env
 REACT_APP_API_URL=http://localhost:5000
+NODE_ENV=development
+PORT=3000
 ```
 
-## Development
-
-### Start Development Server
+### Bước 3: Khởi Chạy Development Server
 ```bash
 npm start
 ```
-Opens [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Build for Production
-```bash
-npm run build
-```
-Creates optimized production build in `build/` folder.
+Ứng dụng sẽ chạy tại: http://localhost:3000
 
-### Run Tests
-```bash
-npm test
-```
-
-## Project Structure
+## 🏗️ Cấu Trúc Dự Án
 
 ```
 src/
-├── components/          # React components
-│   ├── Login.js        # Authentication
-│   ├── Dashboard.js    # Main dashboard
-│   ├── AttendanceCheckIn.js  # Face check-in
-│   ├── FaceEnrollment.js     # Face registration
-│   ├── AttendanceHistory.js  # History view
-│   ├── LeaveRequest.js       # Leave management
-│   ├── AdminPanel.js         # Admin interface
-│   ├── ChatBot.js           # AI assistant
-│   ├── Navigation.js        # Navigation bar
-│   ├── WebcamCapture.js     # Camera component
-│   └── ProtectedRoute.js    # Route protection
+├── components/           # React components
+│   ├── admin/           # Admin dashboard & management
+│   ├── attendance/      # Face attendance interface
+│   ├── auth/           # Login/Register pages
+│   ├── common/         # Shared components
+│   ├── dashboard/      # Employee dashboard
+│   ├── face-enrollment/ # Face enrollment management
+│   ├── layout/         # Navigation & layout
+│   ├── leave/          # Leave request management
+│   └── reports/        # Reports & statistics
 ├── contexts/           # React contexts
-│   └── AuthContext.js  # Authentication state
-├── services/          # API services
-│   └── api.js         # API client
-└── App.js             # Main application
+│   └── AuthContext.js  # Authentication & permissions
+├── services/           # API & utility services
+│   ├── apiService.js   # Backend API calls
+│   └── networkService.js # Network detection
+├── App.js             # Main app with routing
+└── index.js           # App entry point
 ```
 
-## Key Features
+## 🔧 Scripts Có Sẵn
 
-### Authentication & Security
-- JWT-based authentication
-- Role-based access control (User/Admin)
-- Protected routes
-- Network-based access control for face check-in
-
-### Face Recognition
-- Real-time webcam capture
-- Face enrollment with user registration
-- Attendance check-in/out without login (internal network only)
-- Image preview and retake functionality
-
-### Dashboard & Analytics
-- Real-time attendance statistics
-- Daily, weekly, monthly summaries
-- Recent attendance history
-- Quick action buttons
-
-### Attendance Management
-- Comprehensive history view with filters
-- Export to Excel functionality
-- Search and date range filtering
-- Pagination for large datasets
-
-### Leave Management
-- Submit leave requests with reason
-- View request status (Pending/Approved/Rejected)
-- Admin approval workflow
-- Leave type categorization
-
-### Admin Features
-- User management (Create/Edit/Delete)
-- Role assignment
-- Face enrollment for new users
-- System monitoring
-
-### AI Integration
-- Chatbot for HR queries
-- Attendance statistics via chat
-- Natural language processing
-- Contextual responses
-
-## API Integration
-
-The frontend communicates with the backend API through:
-
-- **Authentication**: `/api/auth/*`
-- **Face Enrollment**: `/api/enroll-face`
-- **Attendance**: `/api/attendance/*`
-- **Leave Requests**: `/api/leave/*`
-- **Admin Functions**: `/api/admin/*`
-- **AI Features**: `/api/ai/*`
-
-## Network Requirements
-
-### Internal Network Access
-- Face check-in only works on company internal network
-- Automatic network detection
-- IP-based access control
-
-### External Access
-- Login required for external access
-- All features except face check-in available
-- Secure authentication required
-
-## Browser Support
-
-- Chrome 90+ (Recommended)
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-
-**Note**: Webcam features require HTTPS in production.
-
-## Deployment
+### Development
+```bash
+npm start          # Khởi chạy dev server
+npm test           # Chạy tests
+npm run build      # Build production
+npm run eject      # Eject CRA (không khuyến nghị)
+```
 
 ### Production Build
 ```bash
 npm run build
 ```
 
-### Environment Variables
-```
-REACT_APP_API_URL=https://your-api-domain.com
-```
+Build sẽ được tạo trong thư mục `build/` và sẵn sàng deploy.
 
-### HTTPS Requirements
-- Webcam access requires HTTPS in production
-- Configure SSL certificates
-- Update API URLs to HTTPS
+## 🌐 Routing & Navigation
 
-## Troubleshooting
+### Public Routes
+- `/` - Trang chủ
+- `/login` - Đăng nhập
+- `/register` - Đăng ký
 
-### Webcam Issues
-- Ensure camera permissions are granted
-- Check HTTPS requirement in production
-- Verify camera is not used by other applications
+### Protected Routes
+- `/dashboard` - Dashboard nhân viên
+- `/admin` - Dashboard admin (chỉ admin)
+- `/attendance` - Chấm công (chỉ mạng nội bộ)
+- `/face-enrollment` - Quản lý đăng ký khuôn mặt (chỉ admin)
+- `/leave` - Quản lý nghỉ phép
+- `/reports` - Báo cáo & thống kê
+
+### Error Pages
+- `/unauthorized` - Không có quyền truy cập
+- `/network-restricted` - Bị hạn chế mạng
+- `/feature-restricted` - Tính năng bị hạn chế
+
+## 🔐 Hệ Thống Phân Quyền
 
 ### Network Detection
-- Face check-in requires internal network
-- Check IP range configuration
-- Verify backend network validation
+Hệ thống tự động phát hiện loại mạng:
+- **Internal**: 192.168.x.x, 10.x.x.x, 172.16-31.x.x, 127.x.x.x
+- **External**: Tất cả IP khác
 
-### API Connection
-- Verify backend server is running
-- Check CORS configuration
-- Validate API endpoint URLs
+### Permission Matrix
+```javascript
+// Face Attendance: Chỉ mạng nội bộ
+canAccessFaceAttendance: isInternalNetwork
 
-## Contributing
+// Admin Functions: Admin role bất kể mạng
+canAccessAdminPanel: isAdmin
+canManageFaceEnrollment: isAdmin
 
-1. Follow React best practices
-2. Use functional components with hooks
-3. Implement proper error handling
-4. Add loading states for async operations
-5. Ensure responsive design
-6. Test webcam functionality across browsers
+// General Features: Mạng nội bộ free, ngoài cần auth
+canViewReports: isInternal || (isExternal && isAuthenticated)
+canCreateLeaveRequests: isInternal || (isExternal && isAuthenticated)
+```
 
-## License
+## 🎨 UI Components & Styling
 
-This project is part of the Face Attendance System.
+### Tailwind CSS
+Sử dụng Tailwind CSS cho styling với custom theme:
+- Primary: Blue (#3b82f6)
+- Success: Green (#22c55e) 
+- Warning: Yellow (#f59e0b)
+- Danger: Red (#ef4444)
 
-## Support
+### Component Classes
+```css
+.btn-primary     # Primary button
+.btn-secondary   # Secondary button  
+.btn-danger      # Danger button
+.card           # Card container
+.input-field    # Form input
+```
 
-For technical support or questions about the frontend:
-- Check the troubleshooting section
-- Review browser console for errors
-- Verify API connectivity
-- Ensure proper network configuration
+### Icons
+Sử dụng Lucide React icons cho consistency.
+
+## 📱 Responsive Design
+
+- **Mobile First**: Thiết kế ưu tiên mobile
+- **Breakpoints**: sm (640px), md (768px), lg (1024px), xl (1280px)
+- **Grid System**: CSS Grid và Flexbox
+- **Navigation**: Responsive navbar với mobile menu
+
+## 🔄 State Management
+
+### AuthContext
+Quản lý authentication và permissions:
+```javascript
+const {
+  user,              // Current user info
+  isAuthenticated,   // Auth status
+  isAdmin,          // Admin role check
+  isInternalNetwork, // Network type
+  hasPermission,    // Permission checker
+  login,            // Login function
+  logout            // Logout function
+} = useAuth();
+```
+
+### API Integration
+Tất cả API calls thông qua `apiService.js`:
+- Automatic JWT token handling
+- Request/response interceptors
+- Error handling
+- Network-aware requests
+
+## 🚨 Error Handling
+
+### Network Errors
+- Automatic retry cho failed requests
+- Fallback UI cho network issues
+- User-friendly error messages
+
+### Permission Errors
+- Redirect đến appropriate error pages
+- Clear messaging về access restrictions
+- Graceful degradation
+
+## 🔧 Development Tips
+
+### Hot Reload
+Development server hỗ trợ hot reload cho:
+- React components
+- CSS changes
+- Context updates
+
+### Debugging
+```javascript
+// Network status debugging
+console.log(networkService.getNetworkStatus());
+
+// Permission debugging  
+console.log(authContext.permissions);
+```
+
+### Testing
+```bash
+npm test                    # Run all tests
+npm test -- --coverage     # Run with coverage
+npm test -- --watch        # Watch mode
+```
+
+## 🚀 Deployment
+
+### Environment Variables
+Production cần set:
+```env
+REACT_APP_API_URL=https://your-api-domain.com
+NODE_ENV=production
+GENERATE_SOURCEMAP=false
+```
+
+### Build Process
+```bash
+npm run build
+```
+
+### Static Hosting
+Build output có thể deploy lên:
+- Netlify
+- Vercel  
+- AWS S3 + CloudFront
+- Nginx static hosting
+
+### Docker Deployment
+```dockerfile
+FROM node:16-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+**1. Network Detection Không Hoạt Động**
+- Kiểm tra backend API `/api/network/status`
+- Verify CORS settings
+- Check network configuration
+
+**2. Authentication Errors**
+- Clear localStorage: `localStorage.clear()`
+- Check JWT token expiry
+- Verify backend auth endpoints
+
+**3. Permission Issues**
+- Check user role trong database
+- Verify network detection
+- Review permission logic
+
+**4. Build Errors**
+- Clear node_modules: `rm -rf node_modules && npm install`
+- Check dependency versions
+- Verify environment variables
+
+### Debug Commands
+```bash
+# Clear cache
+npm start -- --reset-cache
+
+# Verbose logging
+REACT_APP_DEBUG=true npm start
+
+# Check bundle size
+npm run build && npx serve -s build
+```
+
+## 📞 Support
+
+Liên hệ team development để được hỗ trợ:
+- Issues: GitHub Issues
+- Documentation: Wiki
+- Email: dev-team@company.com
+
+## 📄 License
+
+Private project - All rights reserved.
+
+### Code Splitting
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+
+### Analyzing the Bundle Size
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+
+### Making a Progressive Web App
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### Advanced Configuration
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+
+### Deployment
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `npm run build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)

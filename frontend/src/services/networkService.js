@@ -33,7 +33,7 @@ class NetworkService {
   // Detect network type by calling backend
   async detectNetworkType() {
     try {
-      const response = await fetch('/api/network/status', {
+      const response = await fetch('/api/auth/network-status', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -41,20 +41,39 @@ class NetworkService {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        this.networkType = data.network_type; // 'internal' or 'external'
-        this.clientIP = data.client_ip;
-        return data;
+        // Check if response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          
+          // Handle both direct data and wrapped response formats
+          const responseData = data.data || data;
+          this.networkType = responseData.network_type; // 'internal' or 'external'
+          this.clientIP = responseData.client_ip;
+          return responseData;
+        } else {
+          console.warn('API returned non-JSON response, likely HTML error page');
+          throw new Error('Backend API not available - received HTML instead of JSON');
+        }
+      } else {
+        console.warn(`API request failed with status: ${response.status}`);
+        throw new Error(`API request failed: ${response.status}`);
       }
     } catch (error) {
       console.error('Network detection failed:', error);
+      
+      // More detailed error logging
+      if (error.message.includes('Unexpected token')) {
+        console.error('Backend is likely not running or returning HTML error pages');
+      }
+      
       // Fallback to external network for security
       this.networkType = 'external';
     }
 
     return {
       network_type: this.networkType || 'external',
-      client_ip: this.clientIP,
+      client_ip: this.clientIP || 'unknown',
       is_internal: this.networkType === 'internal'
     };
   }
@@ -116,4 +135,5 @@ class NetworkService {
   }
 }
 
-export default new NetworkService();
+const networkService = new NetworkService();
+export default networkService;

@@ -63,12 +63,12 @@ class ApiService {
 
   // Network APIs
   async getNetworkStatus() {
-    const response = await this.api.get('/api/network/status');
+    const response = await this.api.get('/api/auth/network-status');
     return response.data;
   }
 
-  async getAccessRestrictions() {
-    const response = await this.api.get('/api/restrictions/features');
+  async verifyToken() {
+    const response = await this.api.get('/api/auth/verify');
     return response.data;
   }
 

@@ -93,7 +93,7 @@ def require_auth(f):
             if token.startswith('Bearer '):
                 token = token[7:]
             
-            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            data = jwt.decode(token, current_app.config.get('JWT_SECRET_KEY', current_app.config['SECRET_KEY']), algorithms=['HS256'])
             current_user_id = data['user_id']
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Token has expired'}), 401
@@ -119,7 +119,7 @@ def require_admin(f):
             if token.startswith('Bearer '):
                 token = token[7:]
             
-            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            data = jwt.decode(token, current_app.config.get('JWT_SECRET_KEY', current_app.config['SECRET_KEY']), algorithms=['HS256'])
             current_user_id = data['user_id']
             
             # Check if user is admin
@@ -193,7 +193,7 @@ def require_external_auth(f):
             if token.startswith('Bearer '):
                 token = token[7:]
             
-            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            data = jwt.decode(token, current_app.config.get('JWT_SECRET_KEY', current_app.config['SECRET_KEY']), algorithms=['HS256'])
             current_user_id = data['user_id']
             
             return f(current_user_id, *args, **kwargs)
@@ -262,7 +262,7 @@ def external_network_limited_auth(f):
             if token.startswith('Bearer '):
                 token = token[7:]
             
-            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
+            data = jwt.decode(token, current_app.config.get('JWT_SECRET_KEY', current_app.config['SECRET_KEY']), algorithms=['HS256'])
             current_user_id = data['user_id']
             
             # Pass user_id as first argument for external network users

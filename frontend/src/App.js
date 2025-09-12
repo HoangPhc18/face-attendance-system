@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Navbar from './components/layout/Navbar';
 
@@ -66,7 +66,7 @@ const Home = () => {
 
 // Dashboard Router Component
 const DashboardRouter = () => {
-  const { isAdmin } = require('./contexts/AuthContext').useAuth();
+  const { isAdmin } = useAuth();
   
   if (isAdmin) {
     return <Navigate to="/admin" replace />;

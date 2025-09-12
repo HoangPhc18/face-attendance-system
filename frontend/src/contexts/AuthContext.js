@@ -219,8 +219,11 @@ export function AuthProvider({ children }) {
         password: credentials.password
       };
       
-      const response = await apiService.auth.login(loginData);
-      const { user, token } = response.data;
+      const response = await apiService.login(loginData);
+      
+      // Handle both wrapped and direct response formats
+      const responseData = response.data || response;
+      const { user, token } = responseData;
       
       // Store in localStorage
       localStorage.setItem('user', JSON.stringify(user));

@@ -7,7 +7,7 @@ Flask-JWT-Extended
 python-dotenv
 Pillow==10.0.1
 bcrypt==4.0.1
-
+mysql-connector-python
 # Xử lý ảnh và nhận diện khuôn mặt
 face-recognition
 opencv-python

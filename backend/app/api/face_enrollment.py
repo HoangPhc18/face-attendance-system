@@ -18,13 +18,13 @@ def create_user_account(current_user_id):
     """Step 1: Create user account first (admin only)"""
     try:
         data = request.get_json()
-        validate_required_fields(data, ['username', 'full_name', 'email'])
+        validate_required_fields(data, ['username', 'full_name', 'email', 'password'])
         
         username = data['username']
         full_name = data['full_name']
         email = data['email']
         role = data.get('role', 'user')
-        password = data.get('password', 'temp123')  # Temporary password
+        password = data['password']  # Required password for external network access
         
         with get_db_cursor() as cursor:
             # Check if username or email already exists
@@ -37,14 +37,39 @@ def create_user_account(current_user_id):
             if existing_user:
                 return create_response(False, error='Username or email already exists', status_code=409)
             
-            # Hash temporary password
+            # Hash password
             password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
-            # Create new user with temporary password
-            cursor.execute("""
-                INSERT INTO users (username, full_name, email, password_hash, role, is_active) 
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (username, full_name, email, password_hash, role, True))
+            # Generate employee ID
+            cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'user'")
+            user_count = cursor.fetchone()[0]
+            employee_id = f"EMP{str(user_count + 1).zfill(3)}" if role == 'user' else f"ADMIN{str(user_count + 1).zfill(3)}"
+            
+            # Set access control based on role
+            allow_password_login = True  # All users can login with password
+            allow_face_only = True       # All users can use face recognition
+            require_password_for_external = role != 'admin'  # Only non-admin users require password for external access
+            
+            # Create new user with full access control
+            try:
+                cursor.execute("""
+                    INSERT INTO users (
+                        username, full_name, email, password_hash, role, is_active,
+                        allow_password_login, allow_face_only, require_password_for_external,
+                        employee_id, department, position
+                    ) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    username, full_name, email, password_hash, role, True,
+                    allow_password_login, allow_face_only, require_password_for_external,
+                    employee_id, data.get('department', 'General'), data.get('position', 'Employee')
+                ))
+            except Exception as e:
+                # Fallback to old schema if new columns don't exist
+                cursor.execute("""
+                    INSERT INTO users (username, full_name, email, password_hash, role, is_active) 
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (username, full_name, email, password_hash, role, True))
             
             # Get the created user ID
             cursor.execute("SELECT LAST_INSERT_ID()")

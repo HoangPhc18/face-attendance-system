@@ -196,9 +196,22 @@ const EmployeeManagement = () => {
 
   const getRoleBadge = (role) => {
     if (role === 'admin') {
-      return <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 flex items-center"><Shield className="w-3 h-3 mr-1" />Admin</span>;
+      return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 flex items-center"><Shield className="w-3 h-3 mr-1" />Quản trị</span>;
     }
     return <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 flex items-center"><User className="w-3 h-3 mr-1" />Nhân viên</span>;
+  };
+
+  const getAccessTypeBadge = (accessType) => {
+    switch (accessType) {
+      case 'FACE_ONLY':
+        return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 flex items-center"><Eye className="w-3 h-3 mr-1" />Chỉ Face</span>;
+      case 'HYBRID':
+        return <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800 flex items-center"><User className="w-3 h-3 mr-1" />Face + Pass</span>;
+      case 'ADMIN':
+        return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 flex items-center"><Shield className="w-3 h-3 mr-1" />Admin</span>;
+      default:
+        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 flex items-center"><AlertTriangle className="w-3 h-3 mr-1" />Khác</span>;
+    }
   };
 
   if (!isAdmin) {
@@ -288,6 +301,9 @@ const EmployeeManagement = () => {
                       Trạng thái
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Loại truy cập
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Ngày tạo
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -324,6 +340,9 @@ const EmployeeManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(employee)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getAccessTypeBadge(employee.access_type)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {employee.created_at ? new Date(employee.created_at).toLocaleDateString('vi-VN') : 'N/A'}

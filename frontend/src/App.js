@@ -20,6 +20,8 @@ import FaceEnrollmentManager from './components/face-enrollment/FaceEnrollmentMa
 import LeaveRequestManager from './components/leave/LeaveRequestManager';
 import ReportsManager from './components/reports/ReportsManager';
 import ApiIntegrationTest from './components/test/ApiIntegrationTest';
+import HomePage from './components/home/HomePage';
+import UnifiedEmployeeDashboard from './components/employee/UnifiedEmployeeDashboard';
 
 // Home Component
 const Home = () => {
@@ -139,7 +141,7 @@ function App() {
           <main>
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               
@@ -151,6 +153,12 @@ function App() {
                     <EmployeeDashboard />
                   </ProtectedRoute>
                 } 
+              />
+              
+              {/* Employee Dashboard - Network Aware */}
+              <Route 
+                path="/employee" 
+                element={<UnifiedEmployeeDashboard />} 
               />
               
               {/* Admin Routes */}

@@ -14,9 +14,10 @@ def get_db_connection():
         return mysql.connector.connect(
             database=result.path[1:],
             user=result.username,
-            password=result.password,
+            password=result.password or '',
             host=result.hostname,
-            port=result.port or 3306
+            port=result.port or 3306,
+            autocommit=True
         )
     elif result.scheme.startswith('postgresql'):
         return psycopg2.connect(

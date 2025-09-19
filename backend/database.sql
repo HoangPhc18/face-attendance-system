@@ -3,7 +3,8 @@
 -- Import this file directly into MySQL
 
 -- Create database (run this separately if needed)
--- CREATE DATABASE face_attendance_db;
+CREATE DATABASE IF NOT EXISTS face_attendance_db;
+USE face_attendance_db;
 
 -- Connect to the database and run the following:
 
@@ -14,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NULL, -- NULL cho face-only users
-    role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+    role VARCHAR(20) DEFAULT 'user',
     is_active BOOLEAN DEFAULT TRUE,
     -- Network access control
     allow_password_login BOOLEAN DEFAULT FALSE, -- Cho phép login bằng password
@@ -55,7 +56,7 @@ CREATE TABLE IF NOT EXISTS attendance (
     check_in_time TIMESTAMP NULL,
     check_out_time TIMESTAMP NULL,
     total_hours DECIMAL(4,2),
-    status VARCHAR(20) DEFAULT 'present' CHECK (status IN ('present', 'absent', 'late', 'early_leave')),
+    status VARCHAR(20) DEFAULT 'present',
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, date),
@@ -69,7 +70,7 @@ CREATE TABLE IF NOT EXISTS leave_requests (
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     reason TEXT NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    status VARCHAR(20) DEFAULT 'pending',
     approved_by INT,
     approved_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -103,7 +104,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     user_id INT,
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
-    type VARCHAR(20) DEFAULT 'info' CHECK (type IN ('info', 'warning', 'error', 'success')),
+    type VARCHAR(20) DEFAULT 'info',
     is_read BOOLEAN DEFAULT FALSE,
     data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -173,7 +174,7 @@ VALUES (
     'System Administrator',
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-) ON DUPLICATE KEY UPDATE username = username;
+) ON DUPLICATE KEY UPDATE username = VALUES(username);
 
 -- 13. Insert sample users với các loại access khác nhau
 INSERT INTO users (
@@ -193,7 +194,7 @@ VALUES
     -- User chỉ dùng face, không cần password cho external
     ('mike_wilson', 'Mike Wilson', 'mike.wilson@company.com', NULL, 'user',
      FALSE, TRUE, FALSE, 'EMP003', 'Operations', 'Operations Staff', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON DUPLICATE KEY UPDATE username = username;
+ON DUPLICATE KEY UPDATE username = VALUES(username);
 
 -- Database setup completed
 -- Default admin credentials:
@@ -246,4 +247,6 @@ ON DUPLICATE KEY UPDATE username = username;
 -- 4. Chấm công CHỈ KHI Ở MẠNG NỘI BỘ với face encoding
 -- 
 -- To import this file:
--- psql -U postgres -d face_attendance_db -f database.sql
+-- mysql -u root -p < database.sql
+-- OR
+-- mysql -u root -p face_attendance_db < database.sql

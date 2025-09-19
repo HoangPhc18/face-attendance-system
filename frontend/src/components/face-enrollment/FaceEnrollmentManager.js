@@ -35,7 +35,10 @@ const FaceEnrollmentManager = () => {
     username: '',
     full_name: '',
     email: '',
-    role: 'user'
+    password: '',
+    role: 'user',
+    department: '',
+    position: ''
   });
 
   useEffect(() => {
@@ -78,7 +81,7 @@ const FaceEnrollmentManager = () => {
         setSelectedUser(response.data);
         setCurrentStep(2);
         setShowCreateForm(false);
-        setFormData({ username: '', full_name: '', email: '', role: 'user' });
+        setFormData({ username: '', full_name: '', email: '', password: '', role: 'user', department: '', position: '' });
         loadUsersWithoutFace();
       }
     } catch (error) {
@@ -639,6 +642,43 @@ const FaceEnrollmentManager = () => {
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder="john@company.com"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Mật khẩu *</label>
+                  <input
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Mật khẩu cho truy cập từ xa"
+                    minLength="6"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Cần thiết để nhân viên có thể truy cập từ mạng ngoại bộ</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phòng ban</label>
+                    <input
+                      type="text"
+                      value={formData.department}
+                      onChange={(e) => setFormData({...formData, department: e.target.value})}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="IT, Sales, Marketing..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Chức vụ</label>
+                    <input
+                      type="text"
+                      value={formData.position}
+                      onChange={(e) => setFormData({...formData, position: e.target.value})}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Developer, Manager..."
+                    />
+                  </div>
                 </div>
 
                 <div>

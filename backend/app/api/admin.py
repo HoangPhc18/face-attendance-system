@@ -14,43 +14,85 @@ def get_users(current_user_id):
     try:
         with get_db_cursor() as cursor:
             # Get all users
+            # Check if new columns exist first
             cursor.execute("""
-                SELECT u.id, u.username, u.full_name, u.email, u.role, u.created_at, u.updated_at,
-                       CASE WHEN f.id IS NOT NULL THEN true ELSE false END as has_face,
-                       u.employee_id, u.department, u.position,
-                       u.allow_password_login, u.allow_face_only, u.require_password_for_external,
-                       CASE 
-                           WHEN u.password_hash IS NULL AND u.allow_face_only = true THEN 'FACE_ONLY'
-                           WHEN u.password_hash IS NOT NULL AND u.allow_password_login = true THEN 'HYBRID'
-                           WHEN u.role = 'admin' THEN 'ADMIN'
-                           ELSE 'OTHER'
-                       END as access_type
-                FROM users u
-                LEFT JOIN faces f ON u.id = f.user_id
-                ORDER BY u.created_at DESC
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'users' AND column_name IN ('employee_id', 'allow_password_login')
             """)
+            new_columns = cursor.fetchall()
+            has_new_schema = len(new_columns) >= 2
+            
+            if has_new_schema:
+                # Use new schema with access control fields
+                cursor.execute("""
+                    SELECT u.id, u.username, u.full_name, u.email, u.role, u.created_at, u.updated_at,
+                           CASE WHEN f.id IS NOT NULL THEN true ELSE false END as has_face,
+                           COALESCE(u.employee_id, CONCAT('EMP', LPAD(u.id, 3, '0'))) as employee_id,
+                           COALESCE(u.department, 'General') as department,
+                           COALESCE(u.position, 'Employee') as position,
+                           COALESCE(u.allow_password_login, CASE WHEN u.role = 'admin' THEN true ELSE false END) as allow_password_login,
+                           COALESCE(u.allow_face_only, true) as allow_face_only,
+                           COALESCE(u.require_password_for_external, CASE WHEN u.role = 'admin' THEN false ELSE true END) as require_password_for_external,
+                           CASE 
+                               WHEN u.password_hash IS NULL AND COALESCE(u.allow_face_only, true) = true THEN 'FACE_ONLY'
+                               WHEN u.password_hash IS NOT NULL AND COALESCE(u.allow_password_login, false) = true THEN 'HYBRID'
+                               WHEN u.role = 'admin' THEN 'ADMIN'
+                               ELSE 'OTHER'
+                           END as access_type
+                    FROM users u
+                    LEFT JOIN faces f ON u.id = f.user_id
+                    ORDER BY u.created_at DESC
+                """)
+            else:
+                # Use old schema with default values
+                cursor.execute("""
+                    SELECT u.id, u.username, u.full_name, u.email, u.role, u.created_at, u.updated_at,
+                           CASE WHEN f.id IS NOT NULL THEN true ELSE false END as has_face
+                    FROM users u
+                    LEFT JOIN faces f ON u.id = f.user_id
+                    ORDER BY u.created_at DESC
+                """)
             
             users = cursor.fetchall()
             
             user_data = []
             for user in users:
-                user_data.append({
-                    'id': user[0],
-                    'username': user[1],
-                    'full_name': user[2],
-                    'email': user[3],
-                    'role': user[4],
-                    'created_at': user[5].isoformat() if user[5] else None,
-                    'updated_at': user[6].isoformat() if user[6] else None,
-                    'has_face': user[7],
-                    'employee_id': user[8],
-                    'department': user[9],
-                    'position': user[10],
-                    'allow_password_login': user[11],
-                    'allow_face_only': user[12],
-                    'require_password_for_external': user[13],
-                    'access_type': user[14]
-                })
+                if has_new_schema:  # New schema with access control fields
+                    user_data.append({
+                        'id': user[0],
+                        'username': user[1],
+                        'full_name': user[2],
+                        'email': user[3],
+                        'role': user[4],
+                        'created_at': user[5].isoformat() if user[5] else None,
+                        'updated_at': user[6].isoformat() if user[6] else None,
+                        'has_face': user[7],
+                        'employee_id': user[8],
+                        'department': user[9],
+                        'position': user[10],
+                        'allow_password_login': user[11],
+                        'allow_face_only': user[12],
+                        'require_password_for_external': user[13],
+                        'access_type': user[14]
+                    })
+                else:  # Old schema - provide default values
+                    user_data.append({
+                        'id': user[0],
+                        'username': user[1],
+                        'full_name': user[2],
+                        'email': user[3],
+                        'role': user[4],
+                        'created_at': user[5].isoformat() if user[5] else None,
+                        'updated_at': user[6].isoformat() if user[6] else None,
+                        'has_face': user[7],
+                        'employee_id': f'EMP{str(user[0]).zfill(3)}',  # Generate from ID
+                        'department': 'General',
+                        'position': 'Employee',
+                        'allow_password_login': user[4] == 'admin',  # Admin can login with password
+                        'allow_face_only': True,
+                        'require_password_for_external': user[4] != 'admin',
+                        'access_type': 'ADMIN' if user[4] == 'admin' else 'HYBRID'
+                    })
             
             return create_response(True, {
                 'users': user_data,
@@ -217,7 +259,7 @@ def create_user(current_user_id):
     """Create new user (admin only)"""
     try:
         data = request.get_json()
-        required_fields = ['username', 'full_name', 'email']
+        required_fields = ['username', 'full_name', 'email', 'password']
         
         if not validate_required_fields(data, required_fields):
             return create_response(False, error='Missing required fields', status_code=400)
@@ -266,29 +308,44 @@ def create_user(current_user_id):
                 user_count = cursor.fetchone()[0]
                 employee_id = f"EMP{str(user_count + 1).zfill(3)}"
             
-            # Create user
-            cursor.execute("""
-                INSERT INTO users (
-                    username, full_name, email, password_hash, role, 
-                    allow_password_login, allow_face_only, require_password_for_external,
-                    employee_id, department, position, created_at
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id
-            """, (
-                data['username'],
-                data['full_name'], 
-                data['email'],
-                hashed_password,
-                data.get('role', 'user'),
-                allow_password_login,
-                allow_face_only,
-                require_password_for_external,
-                employee_id,
-                data.get('department', 'General'),
-                data.get('position', 'Employee'),
-                datetime.now()
-            ))
+            # Create user - try new schema first, fallback to old
+            try:
+                cursor.execute("""
+                    INSERT INTO users (
+                        username, full_name, email, password_hash, role, 
+                        allow_password_login, allow_face_only, require_password_for_external,
+                        employee_id, department, position, created_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (
+                    data['username'],
+                    data['full_name'], 
+                    data['email'],
+                    hashed_password,
+                    data.get('role', 'user'),
+                    allow_password_login,
+                    allow_face_only,
+                    require_password_for_external,
+                    employee_id,
+                    data.get('department', 'General'),
+                    data.get('position', 'Employee'),
+                    datetime.now()
+                ))
+            except Exception as e:
+                # Fallback to old schema
+                cursor.execute("""
+                    INSERT INTO users (username, full_name, email, password_hash, role, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (
+                    data['username'],
+                    data['full_name'], 
+                    data['email'],
+                    hashed_password,
+                    data.get('role', 'user'),
+                    datetime.now()
+                ))
             
             user_id = cursor.fetchone()[0]
             

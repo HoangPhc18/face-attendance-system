@@ -107,6 +107,79 @@ class ApiService {
     return response.data;
   }
 
+  // User Profile APIs
+  async getUserProfile() {
+    const response = await this.api.get('/api/auth/profile');
+    return response.data;
+  }
+
+  async updateProfile(profileData) {
+    const response = await this.api.put('/api/auth/profile', profileData);
+    return response.data;
+  }
+
+  async changePassword(passwordData) {
+    const response = await this.api.post('/api/auth/change-password', passwordData);
+    return response.data;
+  }
+
+  // Attendance History for External Users
+  async getAttendanceHistory(params = {}) {
+    const response = await this.api.get('/api/attendance/history', { params });
+    return response.data;
+  }
+
+  // Leave Request APIs
+  async getLeaveRequests(params = {}) {
+    const response = await this.api.get('/api/leave/requests', { params });
+    return response.data;
+  }
+
+  async submitLeaveRequest(leaveData) {
+    const response = await this.api.post('/api/leave/requests', leaveData);
+    return response.data;
+  }
+
+  async cancelLeaveRequest(requestId) {
+    const response = await this.api.delete(`/api/leave/requests/${requestId}`);
+    return response.data;
+  }
+
+  // Export APIs
+  async exportAttendance(params = {}) {
+    const response = await this.api.get('/api/reports/attendance/export', { 
+      params,
+      responseType: 'blob'
+    });
+    return { success: true, data: response.data };
+  }
+
+  // Notifications APIs
+  async getNotifications(params = {}) {
+    const response = await this.api.get('/api/notifications', { params });
+    return response.data;
+  }
+
+  async markNotificationAsRead(notificationId) {
+    const response = await this.api.put(`/api/notifications/${notificationId}/read`);
+    return response.data;
+  }
+
+  // Face Attendance APIs
+  async faceCheckIn(imageData) {
+    const response = await this.api.post('/api/attendance/face-checkin', {
+      image: imageData
+    });
+    return response.data;
+  }
+
+  async faceCheckOut(imageData) {
+    const response = await this.api.post('/api/attendance/face-checkout', {
+      image: imageData
+    });
+    return response.data;
+  }
+
   // Face Enrollment APIs (Admin Only) - NEW WORKFLOW
   async createUser(userData) {
     const response = await this.api.post('/api/face_enrollment/create-user', userData);

@@ -1,79 +1,32 @@
-# Face enrollment API routes
+# Face enrollment API routes - New workflow: Create user first, then capture face
 from flask import Blueprint, request, jsonify
 from datetime import datetime
+import bcrypt
 from ..core.database import get_db_cursor
 from ..core.utils import create_response, require_auth, require_admin, validate_required_fields, decode_base64_image, log_activity
-from ..face_user_register.face_enroll import capture_and_store_face_temp
 import json
 
 face_enrollment_bp = Blueprint('face_enrollment', __name__)
 
-@face_enrollment_bp.route('/enroll', methods=['POST'])
-@require_admin
-def enroll_face(current_user_id):
-    """Face enrollment endpoint (requires admin authentication)"""
-    try:
-        if 'image' not in request.files:
-            return create_response(False, error='No image file provided', status_code=400)
-        
-        image_file = request.files['image']
-        if image_file.filename == '':
-            return create_response(False, error='No image file selected', status_code=400)
-        
-        # Read image data
-        image_data = image_file.read()
-        
-        # Convert to OpenCV format for processing
-        import numpy as np
-        import cv2
-        nparr = np.frombuffer(image_data, np.uint8)
-        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
-        if image is None:
-            return create_response(False, error='Invalid image format', status_code=400)
-        
-        # Process face enrollment (admin only - no liveness detection needed)
-        pending_id = capture_and_store_face_temp(image)
-        
-        log_activity('INFO', f'Face enrolled successfully, pending_id: {pending_id}', 'face_enrollment')
-        
-        return create_response(True, {
-            'pending_id': pending_id,
-            'message': 'Face enrolled successfully. Please complete user registration.'
-        })
-        
-    except ValueError as e:
-        log_activity('WARNING', f'Face enrollment failed: {str(e)}', 'face_enrollment')
-        return create_response(False, error=str(e), status_code=400)
-    except Exception as e:
-        log_activity('ERROR', f'Face enrollment error: {str(e)}', 'face_enrollment')
-        return create_response(False, error=f'Face enrollment failed: {str(e)}', status_code=500)
+# =============================================================================
+# NEW WORKFLOW: Step 1 - Create User Account First
+# =============================================================================
 
-@face_enrollment_bp.route('/register', methods=['POST'])
+@face_enrollment_bp.route('/create-user', methods=['POST'])
 @require_admin
-def register_user(current_user_id):
-    """Complete user registration with pending face (admin only)"""
+def create_user_account(current_user_id):
+    """Step 1: Create user account first (admin only)"""
     try:
         data = request.get_json()
-        validate_required_fields(data, ['username', 'full_name', 'email', 'pending_id'])
+        validate_required_fields(data, ['username', 'full_name', 'email'])
         
         username = data['username']
         full_name = data['full_name']
         email = data['email']
-        pending_id = data['pending_id']
         role = data.get('role', 'user')
+        password = data.get('password', 'temp123')  # Temporary password
         
         with get_db_cursor() as cursor:
-            # Check if pending face exists
-            cursor.execute(
-                "SELECT face_encoding FROM pending_faces WHERE id = %s",
-                (pending_id,)
-            )
-            pending_face = cursor.fetchone()
-            
-            if not pending_face:
-                return create_response(False, error='Pending face not found', status_code=404)
-            
             # Check if username or email already exists
             cursor.execute(
                 "SELECT id FROM users WHERE username = %s OR email = %s",
@@ -84,63 +37,209 @@ def register_user(current_user_id):
             if existing_user:
                 return create_response(False, error='Username or email already exists', status_code=409)
             
-            # Create new user
-            cursor.execute("""
-                INSERT INTO users (username, full_name, email, role) 
-                VALUES (%s, %s, %s, %s) RETURNING id
-            """, (username, full_name, email, role))
+            # Hash temporary password
+            password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
+            # Create new user with temporary password
+            cursor.execute("""
+                INSERT INTO users (username, full_name, email, password_hash, role, is_active) 
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (username, full_name, email, password_hash, role, True))
+            
+            # Get the created user ID
+            cursor.execute("SELECT LAST_INSERT_ID()")
             user_id = cursor.fetchone()[0]
             
-            # Move face encoding from pending to faces table
-            cursor.execute("""
-                INSERT INTO faces (user_id, face_encoding) 
-                VALUES (%s, %s)
-            """, (user_id, pending_face[0]))
-            
-            # Delete pending face
-            cursor.execute("DELETE FROM pending_faces WHERE id = %s", (pending_id,))
-            
-            log_activity('INFO', f'User registered successfully: {username}', 'face_enrollment')
+            log_activity('INFO', f'User account created: {username}', 'face_enrollment')
             
             return create_response(True, {
                 'user_id': user_id,
                 'username': username,
                 'full_name': full_name,
                 'email': email,
-                'role': role
-            }, message='User registered successfully')
+                'role': role,
+                'temp_password': password,
+                'message': 'User account created successfully. Now proceed to capture face.',
+                'next_step': 'capture_face'
+            })
             
     except ValueError as e:
         return create_response(False, error=str(e), status_code=400)
     except Exception as e:
-        log_activity('ERROR', f'User registration error: {str(e)}', 'face_enrollment')
-        return create_response(False, error=f'User registration failed: {str(e)}', status_code=500)
+        log_activity('ERROR', f'User creation error: {str(e)}', 'face_enrollment')
+        return create_response(False, error=f'User creation failed: {str(e)}', status_code=500)
+
+# =============================================================================
+# NEW WORKFLOW: Step 2 - Capture Face from Camera
+# =============================================================================
+
+@face_enrollment_bp.route('/capture-face', methods=['POST'])
+@require_admin
+def capture_face_from_camera(current_user_id):
+    """Step 2: Capture face from camera and link to user (admin only)"""
+    try:
+        data = request.get_json()
+        validate_required_fields(data, ['user_id', 'face_image'])
+        
+        user_id = data['user_id']
+        face_image_base64 = data['face_image']  # Base64 image from camera
+        
+        with get_db_cursor() as cursor:
+            # Verify user exists and doesn't have face yet
+            cursor.execute(
+                "SELECT username, full_name FROM users WHERE id = %s AND is_active = TRUE",
+                (user_id,)
+            )
+            user = cursor.fetchone()
+            
+            if not user:
+                return create_response(False, error='User not found or inactive', status_code=404)
+            
+            # Check if user already has face registered
+            cursor.execute("SELECT id FROM faces WHERE user_id = %s", (user_id,))
+            existing_face = cursor.fetchone()
+            
+            if existing_face:
+                return create_response(False, error='User already has face registered', status_code=409)
+            
+            # Process face image from camera
+            try:
+                # Decode base64 image
+                face_image = decode_base64_image(face_image_base64)
+                
+                # Generate face encoding
+                import face_recognition
+                import cv2
+                
+                # Convert BGR to RGB for face_recognition
+                rgb_image = cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB)
+                
+                # Find face locations
+                face_locations = face_recognition.face_locations(rgb_image)
+                
+                if not face_locations:
+                    return create_response(False, error='No face detected in image', status_code=400)
+                
+                if len(face_locations) > 1:
+                    return create_response(False, error='Multiple faces detected. Please ensure only one face is visible.', status_code=400)
+                
+                # Generate face encoding
+                face_encodings = face_recognition.face_encodings(rgb_image, face_locations)
+                
+                if not face_encodings:
+                    return create_response(False, error='Could not generate face encoding', status_code=400)
+                
+                face_encoding = face_encodings[0]
+                
+                # Convert encoding to JSON string for storage
+                encoding_json = json.dumps(face_encoding.tolist())
+                
+                # Store face encoding in database
+                cursor.execute("""
+                    INSERT INTO faces (user_id, face_encoding, is_active) 
+                    VALUES (%s, %s, %s)
+                """, (user_id, encoding_json, True))
+                
+                log_activity('INFO', f'Face captured and linked to user: {user[0]}', 'face_enrollment')
+                
+                return create_response(True, {
+                    'user_id': user_id,
+                    'username': user[0],
+                    'full_name': user[1],
+                    'message': 'Face captured and registered successfully!',
+                    'status': 'completed'
+                })
+                
+            except Exception as face_error:
+                return create_response(False, error=f'Face processing failed: {str(face_error)}', status_code=400)
+            
+    except ValueError as e:
+        return create_response(False, error=str(e), status_code=400)
+    except Exception as e:
+        log_activity('ERROR', f'Face capture error: {str(e)}', 'face_enrollment')
+        return create_response(False, error=f'Face capture failed: {str(e)}', status_code=500)
+
+# =============================================================================
+# UTILITY ENDPOINTS
+# =============================================================================
+
+@face_enrollment_bp.route('/users-without-face', methods=['GET'])
+@require_admin
+def get_users_without_face(current_user_id):
+    """Get list of users who don't have face registered yet (admin only)"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT u.id, u.username, u.full_name, u.email, u.role, u.created_at
+                FROM users u
+                LEFT JOIN faces f ON u.id = f.user_id
+                WHERE f.user_id IS NULL AND u.is_active = TRUE
+                ORDER BY u.created_at DESC
+            """)
+            users = cursor.fetchall()
+            
+            users_data = []
+            for user in users:
+                users_data.append({
+                    'id': user[0],
+                    'username': user[1],
+                    'full_name': user[2],
+                    'email': user[3],
+                    'role': user[4],
+                    'created_at': user[5].isoformat() if user[5] else None
+                })
+            
+            return create_response(True, {
+                'users_without_face': users_data,
+                'count': len(users_data)
+            })
+            
+    except Exception as e:
+        return create_response(False, error=f'Failed to get users: {str(e)}', status_code=500)
+
+@face_enrollment_bp.route('/user-status/<int:user_id>', methods=['GET'])
+@require_admin
+def get_user_enrollment_status(current_user_id, user_id):
+    """Get enrollment status of a specific user (admin only)"""
+    try:
+        with get_db_cursor() as cursor:
+            cursor.execute("""
+                SELECT u.id, u.username, u.full_name, u.email, u.role, u.is_active,
+                       f.id as face_id, f.created_at as face_registered_at
+                FROM users u
+                LEFT JOIN faces f ON u.id = f.user_id
+                WHERE u.id = %s
+            """, (user_id,))
+            
+            result = cursor.fetchone()
+            
+            if not result:
+                return create_response(False, error='User not found', status_code=404)
+            
+            has_face = result[6] is not None
+            
+            return create_response(True, {
+                'user_id': result[0],
+                'username': result[1],
+                'full_name': result[2],
+                'email': result[3],
+                'role': result[4],
+                'is_active': result[5],
+                'has_face': has_face,
+                'face_registered_at': result[7].isoformat() if result[7] else None,
+                'enrollment_status': 'completed' if has_face else 'pending_face_capture'
+            })
+            
+    except Exception as e:
+        return create_response(False, error=f'Failed to get user status: {str(e)}', status_code=500)
+
+# =============================================================================
+# LEGACY ENDPOINTS (for backward compatibility)
+# =============================================================================
 
 @face_enrollment_bp.route('/pending', methods=['GET'])
 @require_admin
 def get_pending_faces(current_user_id):
-    """Get list of pending face enrollments (admin only)"""
-    try:
-        with get_db_cursor() as cursor:
-            cursor.execute("""
-                SELECT id, created_at 
-                FROM pending_faces 
-                ORDER BY created_at DESC
-            """)
-            pending_faces = cursor.fetchall()
-            
-            pending_data = []
-            for face in pending_faces:
-                pending_data.append({
-                    'id': face[0],
-                    'created_at': face[1].isoformat() if face[1] else None
-                })
-            
-            return create_response(True, {
-                'pending_faces': pending_data,
-                'count': len(pending_data)
-            })
-            
-    except Exception as e:
-        return create_response(False, error=f'Failed to get pending faces: {str(e)}', status_code=500)
+    """Get list of users without face registration (admin only)"""
+    # Redirect to new endpoint
+    return get_users_without_face(current_user_id)

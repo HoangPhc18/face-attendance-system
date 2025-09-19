@@ -1,601 +1,684 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/apiService';
 import { 
   UserPlus, 
   CheckCircle, 
   XCircle, 
-  Clock, 
-  Eye,
   AlertTriangle,
   Camera,
-  Upload
+  Video,
+  Users,
+  ArrowRight,
+  ArrowLeft,
+  RefreshCw,
+  User
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const FaceEnrollmentManager = () => {
   const { isAdmin } = useAuth();
-  const [pendingFaces, setPendingFaces] = useState([]);
-  const [selectedFace, setSelectedFace] = useState(null);
+  const [currentStep, setCurrentStep] = useState(1); // 1: Create User, 2: Capture Face
+  const [usersWithoutFace, setUsersWithoutFace] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showEnrollForm, setShowEnrollForm] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCameraCapture, setShowCameraCapture] = useState(false);
+  const [cameraStream, setCameraStream] = useState(null);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  // Form data for creating user
+  const [formData, setFormData] = useState({
+    username: '',
+    full_name: '',
+    email: '',
+    role: 'user'
+  });
 
   useEffect(() => {
     if (isAdmin) {
-      loadPendingFaces();
+      loadUsersWithoutFace();
     }
   }, [isAdmin]);
 
-  const loadPendingFaces = async () => {
+  useEffect(() => {
+    // Cleanup camera stream when component unmounts
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [cameraStream]);
+
+  const loadUsersWithoutFace = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getPendingFaces();
-      setPendingFaces(response.pending_faces || []);
+      const response = await apiService.getUsersWithoutFace();
+      setUsersWithoutFace(response.users_without_face || []);
     } catch (error) {
-      console.error('Failed to load pending faces:', error);
-      toast.error('Không thể tải danh sách chờ duyệt');
+      console.error('Failed to load users without face:', error);
+      toast.error('Không thể tải danh sách nhân viên');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleApproveFace = async (faceId, userData) => {
+  // Step 1: Create User Account
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
     try {
-      await apiService.approveFace(faceId, userData);
-      toast.success('Đã phê duyệt đăng ký khuôn mặt');
-      loadPendingFaces();
-      setSelectedFace(null);
+      setIsLoading(true);
+      const response = await apiService.createUser(formData);
+      
+      if (response.success) {
+        toast.success('Tạo tài khoản thành công!');
+        setSelectedUser(response.data);
+        setCurrentStep(2);
+        setShowCreateForm(false);
+        setFormData({ username: '', full_name: '', email: '', role: 'user' });
+        loadUsersWithoutFace();
+      }
     } catch (error) {
-      console.error('Failed to approve face:', error);
-      toast.error('Lỗi phê duyệt đăng ký');
+      console.error('Failed to create user:', error);
+      toast.error(error.response?.data?.error || 'Lỗi tạo tài khoản');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleRejectFace = async (faceId, reason) => {
+  // Step 2: Camera Functions - Biometric Style
+  const startCamera = async () => {
     try {
-      await apiService.rejectFace(faceId, reason);
-      toast.success('Đã từ chối đăng ký khuôn mặt');
-      loadPendingFaces();
-      setSelectedFace(null);
+      console.log('🎥 Starting camera...');
+      
+      // Check browser support first
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not supported in this browser');
+      }
+
+      // Request camera with simpler constraints first
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: {
+          width: 640,
+          height: 480,
+          facingMode: 'user'
+        },
+        audio: false
+      });
+      
+      console.log('✅ Camera stream obtained:', stream);
+      console.log('📹 Video tracks:', stream.getVideoTracks());
+      
+      setCameraStream(stream);
+      setShowCameraCapture(true);
+      
+      // Setup video element
+      if (videoRef.current) {
+        console.log('🎬 Setting up video element...');
+        videoRef.current.srcObject = stream;
+        
+        // Add multiple event listeners for debugging
+        videoRef.current.onloadstart = () => console.log('📺 Video load started');
+        videoRef.current.onloadeddata = () => console.log('📺 Video data loaded');
+        videoRef.current.oncanplay = () => console.log('📺 Video can play');
+        videoRef.current.onplaying = () => console.log('📺 Video is playing');
+        
+        videoRef.current.onloadedmetadata = async () => {
+          console.log('📺 Video metadata loaded');
+          console.log('📐 Video dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+          console.log('📺 Video readyState:', videoRef.current.readyState);
+          console.log('📺 Video currentTime:', videoRef.current.currentTime);
+          
+          try {
+            await videoRef.current.play();
+            console.log('✅ Video playing successfully');
+            console.log('📺 Video paused:', videoRef.current.paused);
+            console.log('📺 Video ended:', videoRef.current.ended);
+            toast.success('Camera đã sẵn sàng - Hãy nhìn vào camera');
+          } catch (playError) {
+            console.error('❌ Error playing video:', playError);
+            toast.error('Không thể phát video từ camera');
+          }
+        };
+
+        // Add more debug events
+        videoRef.current.oncanplaythrough = () => console.log('📺 Video can play through');
+        videoRef.current.onwaiting = () => console.log('📺 Video waiting for data');
+        videoRef.current.onstalled = () => console.log('📺 Video stalled');
+        videoRef.current.onsuspend = () => console.log('📺 Video suspended');
+        videoRef.current.onabort = () => console.log('📺 Video aborted');
+        videoRef.current.onemptied = () => console.log('📺 Video emptied');
+
+        videoRef.current.onerror = (e) => {
+          console.error('❌ Video error:', e);
+          toast.error('Lỗi video stream');
+        };
+      }
+      
     } catch (error) {
-      console.error('Failed to reject face:', error);
-      toast.error('Lỗi từ chối đăng ký');
+      console.error('❌ Camera error:', error);
+      let errorMessage = 'Không thể truy cập camera';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Vui lòng cho phép truy cập camera trong trình duyệt';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'Không tìm thấy camera trên thiết bị';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Camera đang được sử dụng bởi ứng dụng khác';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = 'Cài đặt camera không được hỗ trợ';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+      setShowCameraCapture(false);
     }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setShowCameraCapture(false);
+    setCapturedImage(null);
+  };
+
+  // Biometric-style continuous capture
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      const context = canvas.getContext('2d');
+      
+      console.log('📸 Attempting to capture photo...');
+      console.log('📺 Video readyState:', video.readyState);
+      console.log('📺 Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+      console.log('📺 Video paused:', video.paused);
+      
+      // Ensure video is playing
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+        toast.error('Camera chưa sẵn sàng, vui lòng thử lại');
+        return;
+      }
+      
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        toast.error('Video chưa có kích thước, vui lòng thử lại');
+        return;
+      }
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw current frame
+      context.drawImage(video, 0, 0);
+      
+      // Convert to base64 with better quality
+      const imageData = canvas.toDataURL('image/jpeg', 0.9);
+      console.log('📸 Image captured, size:', imageData.length, 'characters');
+      setCapturedImage(imageData);
+      
+      toast.success('Đã chụp ảnh - Kiểm tra và xác nhận');
+    }
+  };
+
+  const refreshVideo = () => {
+    console.log('🔄 Refreshing video...');
+    if (videoRef.current && cameraStream) {
+      videoRef.current.srcObject = null;
+      setTimeout(() => {
+        videoRef.current.srcObject = cameraStream;
+        videoRef.current.play().catch(e => console.error('Refresh play error:', e));
+      }, 100);
+    }
+  };
+
+  const submitFaceCapture = async () => {
+    if (!capturedImage || !selectedUser) {
+      toast.error('Vui lòng chụp ảnh và chọn nhân viên');
+      return;
+    }
+
+    try {
+      setIsCapturing(true);
+      
+      // Validate image data
+      if (!capturedImage.startsWith('data:image/')) {
+        toast.error('Dữ liệu ảnh không hợp lệ');
+        return;
+      }
+      
+      console.log('Submitting face capture for user:', selectedUser.id || selectedUser.user_id);
+      console.log('Image data length:', capturedImage.length);
+      
+      const response = await apiService.captureFace({
+        user_id: selectedUser.id || selectedUser.user_id,
+        face_image: capturedImage
+      });
+
+      if (response.success) {
+        toast.success('🎉 Đăng ký khuôn mặt thành công!');
+        stopCamera();
+        setSelectedUser(null);
+        setCurrentStep(1);
+        loadUsersWithoutFace();
+      } else {
+        toast.error(response.error || 'Lỗi đăng ký khuôn mặt');
+      }
+    } catch (error) {
+      console.error('Failed to capture face:', error);
+      
+      let errorMessage = 'Lỗi đăng ký khuôn mặt';
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  const selectUserForFaceCapture = (user) => {
+    setSelectedUser(user);
+    setCurrentStep(2);
   };
 
   if (!isAdmin) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="card text-center">
-          <AlertTriangle className="w-16 h-16 text-warning-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Truy Cập Bị Từ Chối</h2>
-          <p className="text-gray-600">
-            Chỉ quản trị viên mới có quyền quản lý đăng ký khuôn mặt.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-64 bg-gray-200 rounded"></div>
-            ))}
-          </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertTriangle className="mx-auto h-12 w-12 text-yellow-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Không có quyền truy cập</h3>
+          <p className="mt-1 text-sm text-gray-500">Chỉ admin mới có thể quản lý đăng ký khuôn mặt</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Quản Lý Đăng Ký Khuôn Mặt
-          </h1>
-          <p className="text-gray-600">
-            Phê duyệt và quản lý các yêu cầu đăng ký khuôn mặt mới
-          </p>
-        </div>
-        
-        <button
-          onClick={() => setShowEnrollForm(true)}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <UserPlus className="w-5 h-5" />
-          <span>Đăng ký mới</span>
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card bg-gradient-to-r from-warning-500 to-warning-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-warning-100">Chờ phê duyệt</p>
-              <p className="text-3xl font-bold">{pendingFaces.length}</p>
-            </div>
-            <Clock className="w-12 h-12 text-warning-200" />
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Quản Lý Đăng Ký Khuôn Mặt</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Quy trình mới: Tạo tài khoản → Quét khuôn mặt
+            </p>
           </div>
-        </div>
-
-        <div className="card bg-gradient-to-r from-success-500 to-success-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-success-100">Đã phê duyệt</p>
-              <p className="text-3xl font-bold">--</p>
-            </div>
-            <CheckCircle className="w-12 h-12 text-success-200" />
-          </div>
-        </div>
-
-        <div className="card bg-gradient-to-r from-danger-500 to-danger-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-danger-100">Đã từ chối</p>
-              <p className="text-3xl font-bold">--</p>
-            </div>
-            <XCircle className="w-12 h-12 text-danger-200" />
-          </div>
-        </div>
-      </div>
-
-      {/* Pending Faces List */}
-      {pendingFaces.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {pendingFaces.map((face) => (
-            <PendingFaceCard
-              key={face.id}
-              face={face}
-              onView={() => setSelectedFace(face)}
-              onApprove={(userData) => handleApproveFace(face.id, userData)}
-              onReject={(reason) => handleRejectFace(face.id, reason)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="card text-center py-12">
-          <CheckCircle className="w-16 h-16 text-success-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            Không có yêu cầu nào đang chờ
-          </h3>
-          <p className="text-gray-600">
-            Tất cả yêu cầu đăng ký khuôn mặt đã được xử lý.
-          </p>
-        </div>
-      )}
-
-      {/* Face Detail Modal */}
-      {selectedFace && (
-        <FaceDetailModal
-          face={selectedFace}
-          onClose={() => setSelectedFace(null)}
-          onApprove={(userData) => handleApproveFace(selectedFace.id, userData)}
-          onReject={(reason) => handleRejectFace(selectedFace.id, reason)}
-        />
-      )}
-
-      {/* Enrollment Form Modal */}
-      {showEnrollForm && (
-        <EnrollmentFormModal
-          onClose={() => setShowEnrollForm(false)}
-          onSuccess={() => {
-            setShowEnrollForm(false);
-            loadPendingFaces();
-          }}
-        />
-      )}
-    </div>
-  );
-};
-
-// Pending Face Card Component
-const PendingFaceCard = ({ face, onView, onApprove, onReject }) => {
-  const [showActions, setShowActions] = useState(false);
-
-  return (
-    <div className="card hover:shadow-lg transition-shadow">
-      <div className="aspect-w-16 aspect-h-12 mb-4">
-        {face.image_url ? (
-          <img
-            src={face.image_url}
-            alt="Pending face"
-            className="w-full h-48 object-cover rounded-lg bg-gray-100"
-          />
-        ) : (
-          <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-            <Camera className="w-12 h-12 text-gray-400" />
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        <div>
-          <p className="text-sm text-gray-600">ID: {face.id}</p>
-          <p className="text-sm text-gray-600">
-            Ngày tạo: {new Date(face.created_at).toLocaleDateString('vi-VN')}
-          </p>
-        </div>
-
-        <div className="flex space-x-2">
           <button
-            onClick={onView}
-            className="flex-1 btn-secondary flex items-center justify-center space-x-1"
+            onClick={loadUsersWithoutFace}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
-            <Eye className="w-4 h-4" />
-            <span>Xem</span>
-          </button>
-          
-          <button
-            onClick={() => setShowActions(!showActions)}
-            className="btn-primary"
-          >
-            Thao tác
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Làm mới
           </button>
         </div>
 
-        {showActions && (
-          <div className="space-y-2 pt-2 border-t">
-            <button
-              onClick={() => onApprove({})}
-              className="w-full btn-primary flex items-center justify-center space-x-1"
-            >
-              <CheckCircle className="w-4 h-4" />
-              <span>Phê duyệt</span>
-            </button>
-            
-            <button
-              onClick={() => onReject('Không đạt yêu cầu')}
-              className="w-full btn-danger flex items-center justify-center space-x-1"
-            >
-              <XCircle className="w-4 h-4" />
-              <span>Từ chối</span>
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Face Detail Modal Component
-const FaceDetailModal = ({ face, onClose, onApprove, onReject }) => {
-  const [userData, setUserData] = useState({
-    full_name: '',
-    email: '',
-    employee_id: '',
-    department: ''
-  });
-  const [rejectReason, setRejectReason] = useState('');
-  const [showRejectForm, setShowRejectForm] = useState(false);
-
-  const handleApprove = () => {
-    if (!userData.full_name || !userData.email) {
-      toast.error('Vui lòng điền đầy đủ thông tin');
-      return;
-    }
-    onApprove(userData);
-  };
-
-  const handleReject = () => {
-    if (!rejectReason.trim()) {
-      toast.error('Vui lòng nhập lý do từ chối');
-      return;
-    }
-    onReject(rejectReason);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4">Chi Tiết Đăng Ký Khuôn Mặt</h2>
-          
-          {/* Face Image */}
-          <div className="mb-6">
-            {face.image_url ? (
-              <img
-                src={face.image_url}
-                alt="Face registration"
-                className="w-full h-64 object-cover rounded-lg"
-              />
-            ) : (
-              <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                <Camera className="w-16 h-16 text-gray-400" />
-              </div>
-            )}
-          </div>
-
-          {/* Face Info */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-semibold mb-2">Thông tin đăng ký:</h3>
-            <p><strong>ID:</strong> {face.id}</p>
-            <p><strong>Ngày tạo:</strong> {new Date(face.created_at).toLocaleString('vi-VN')}</p>
-            <p><strong>Trạng thái:</strong> Chờ phê duyệt</p>
-          </div>
-
-          {!showRejectForm ? (
-            /* Approval Form */
-            <div className="space-y-4">
-              <h3 className="font-semibold">Thông tin nhân viên:</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Họ tên *
-                  </label>
-                  <input
-                    type="text"
-                    value={userData.full_name}
-                    onChange={(e) => setUserData({...userData, full_name: e.target.value})}
-                    className="input-field"
-                    placeholder="Nhập họ tên"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    value={userData.email}
-                    onChange={(e) => setUserData({...userData, email: e.target.value})}
-                    className="input-field"
-                    placeholder="Nhập email"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mã nhân viên
-                  </label>
-                  <input
-                    type="text"
-                    value={userData.employee_id}
-                    onChange={(e) => setUserData({...userData, employee_id: e.target.value})}
-                    className="input-field"
-                    placeholder="Nhập mã nhân viên"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phòng ban
-                  </label>
-                  <input
-                    type="text"
-                    value={userData.department}
-                    onChange={(e) => setUserData({...userData, department: e.target.value})}
-                    className="input-field"
-                    placeholder="Nhập phòng ban"
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Reject Form */
-            <div className="space-y-4">
-              <h3 className="font-semibold text-danger-600">Từ chối đăng ký:</h3>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Lý do từ chối *
-                </label>
-                <textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  className="input-field h-24"
-                  placeholder="Nhập lý do từ chối..."
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex space-x-3 mt-6">
-            <button onClick={onClose} className="btn-secondary flex-1">
-              Hủy
-            </button>
-            
-            {!showRejectForm ? (
-              <>
-                <button
-                  onClick={() => setShowRejectForm(true)}
-                  className="btn-danger flex-1"
-                >
-                  Từ chối
-                </button>
-                <button onClick={handleApprove} className="btn-primary flex-1">
-                  Phê duyệt
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setShowRejectForm(false)}
-                  className="btn-secondary flex-1"
-                >
-                  Quay lại
-                </button>
-                <button onClick={handleReject} className="btn-danger flex-1">
-                  Xác nhận từ chối
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Enrollment Form Modal Component
-const EnrollmentFormModal = ({ onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    employee_id: '',
-    department: ''
-  });
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.type.startsWith('image/')) {
-        setSelectedFile(file);
-      } else {
-        toast.error('Vui lòng chọn file hình ảnh');
-      }
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.full_name || !formData.email || !selectedFile) {
-      toast.error('Vui lòng điền đầy đủ thông tin và chọn ảnh');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const imageData = reader.result;
-        
-        await apiService.enrollFace({
-          ...formData,
-          image: imageData
-        });
-        
-        toast.success('Đăng ký khuôn mặt thành công');
-        onSuccess();
-      };
-      reader.readAsDataURL(selectedFile);
-    } catch (error) {
-      console.error('Failed to enroll face:', error);
-      toast.error('Lỗi đăng ký khuôn mặt');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4">Đăng Ký Khuôn Mặt Mới</h2>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Họ tên *
-              </label>
-              <input
-                type="text"
-                value={formData.full_name}
-                onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                className="input-field"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email *
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="input-field"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mã nhân viên
-              </label>
-              <input
-                type="text"
-                value={formData.employee_id}
-                onChange={(e) => setFormData({...formData, employee_id: e.target.value})}
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phòng ban
-              </label>
-              <input
-                type="text"
-                value={formData.department}
-                onChange={(e) => setFormData({...formData, department: e.target.value})}
-                className="input-field"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ảnh khuôn mặt *
-              </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                <div className="space-y-1 text-center">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500">
-                      <span>Chọn file</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="sr-only"
-                      />
-                    </label>
+        {/* Progress Steps */}
+        <div className="mt-6">
+          <nav aria-label="Progress">
+            <ol className="flex items-center">
+              <li className="relative">
+                <div className={`flex items-center ${currentStep >= 1 ? 'text-blue-600' : 'text-gray-500'}`}>
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                    currentStep >= 1 ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300'
+                  }`}>
+                    {currentStep > 1 ? <CheckCircle className="h-5 w-5" /> : '1'}
                   </div>
-                  <p className="text-xs text-gray-500">PNG, JPG tối đa 10MB</p>
-                  {selectedFile && (
-                    <p className="text-sm text-success-600">
-                      Đã chọn: {selectedFile.name}
-                    </p>
+                  <span className="ml-2 text-sm font-medium">Tạo Tài Khoản</span>
+                </div>
+              </li>
+              
+              <ArrowRight className="h-5 w-5 text-gray-400 mx-4" />
+              
+              <li className="relative">
+                <div className={`flex items-center ${currentStep >= 2 ? 'text-blue-600' : 'text-gray-500'}`}>
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                    currentStep >= 2 ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300'
+                  }`}>
+                    <Camera className="h-4 w-4" />
+                  </div>
+                  <span className="ml-2 text-sm font-medium">Quét Khuôn Mặt</span>
+                </div>
+              </li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+
+      {/* Step 1: Create User Account */}
+      {currentStep === 1 && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-medium text-gray-900">Bước 1: Tạo Tài Khoản Nhân Viên</h3>
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Tạo Nhân Viên Mới
+            </button>
+          </div>
+
+          {/* Users without face list */}
+          <div className="space-y-4">
+            <h4 className="text-md font-medium text-gray-900">
+              Nhân viên chưa đăng ký khuôn mặt ({usersWithoutFace.length})
+            </h4>
+            
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+            ) : usersWithoutFace.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Không có nhân viên nào</h3>
+                <p className="mt-1 text-sm text-gray-500">Tất cả nhân viên đã đăng ký khuôn mặt</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {usersWithoutFace.map((user) => (
+                  <div key={user.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <User className="h-10 w-10 text-gray-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {user.full_name}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">@{user.username}</p>
+                        <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <button
+                        onClick={() => selectUserForFaceCapture(user)}
+                        className="w-full inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                      >
+                        <Camera className="h-4 w-4 mr-1" />
+                        Quét Khuôn Mặt
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Face Capture */}
+      {currentStep === 2 && selectedUser && (
+        <div className="bg-white shadow rounded-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Bước 2: Quét Khuôn Mặt</h3>
+              <p className="text-sm text-gray-500">
+                Nhân viên: <span className="font-medium">{selectedUser.full_name}</span>
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setCurrentStep(1);
+                setSelectedUser(null);
+                stopCamera();
+              }}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Quay lại
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {!showCameraCapture ? (
+              <div className="text-center py-8">
+                <Camera className="mx-auto h-16 w-16 text-gray-400" />
+                <h3 className="mt-4 text-lg font-medium text-gray-900">Bắt đầu quét khuôn mặt</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Nhấn nút bên dưới để mở camera và chụp ảnh khuôn mặt
+                </p>
+                <button
+                  onClick={startCamera}
+                  className="mt-4 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <Video className="h-5 w-5 mr-2" />
+                  Mở Camera
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-center">
+                  <div className="relative">
+                    {/* Video Stream */}
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-96 h-72 bg-black rounded-lg object-cover"
+                      style={{ transform: 'scaleX(-1)' }} // Mirror effect
+                    />
+                    
+                    {/* Face Detection Overlay */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      {/* Face Detection Frame */}
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div className="w-48 h-60 border-2 border-blue-400 rounded-lg relative">
+                          {/* Corner indicators */}
+                          <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-blue-400 rounded-tl-lg"></div>
+                          <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-blue-400 rounded-tr-lg"></div>
+                          <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-blue-400 rounded-bl-lg"></div>
+                          <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-blue-400 rounded-br-lg"></div>
+                          
+                          {/* Center crosshair */}
+                          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                            <div className="w-4 h-4 border border-blue-400 rounded-full bg-blue-400 bg-opacity-20"></div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Instructions */}
+                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm">
+                        {!capturedImage ? 'Đặt khuôn mặt vào khung và nhìn thẳng vào camera' : 'Ảnh đã được chụp'}
+                      </div>
+                    </div>
+                    
+                    {/* Hidden Canvas */}
+                    <canvas
+                      ref={canvasRef}
+                      className="hidden"
+                    />
+                    
+                    {/* Captured Image Preview */}
+                    {capturedImage && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                        <div className="bg-white p-2 rounded-lg">
+                          <img
+                            src={capturedImage}
+                            alt="Captured"
+                            className="w-48 h-60 object-cover rounded"
+                            style={{ transform: 'scaleX(-1)' }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Status Indicator */}
+                <div className="flex justify-center">
+                  <div className={`px-4 py-2 rounded-full text-sm font-medium ${
+                    capturedImage 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {capturedImage ? '✅ Đã chụp ảnh' : '📷 Sẵn sàng chụp'}
+                  </div>
+                </div>
+
+                <div className="flex justify-center space-x-4">
+                  {!capturedImage ? (
+                    <>
+                      <button
+                        onClick={capturePhoto}
+                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                      >
+                        <Camera className="h-5 w-5 mr-2" />
+                        Chụp Ảnh
+                      </button>
+                      <button
+                        onClick={refreshVideo}
+                        className="inline-flex items-center px-4 py-3 border border-yellow-300 text-base font-medium rounded-md text-yellow-700 bg-yellow-50 hover:bg-yellow-100"
+                      >
+                        <RefreshCw className="h-5 w-5 mr-2" />
+                        Refresh Video
+                      </button>
+                      <button
+                        onClick={stopCamera}
+                        className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        <XCircle className="h-5 w-5 mr-2" />
+                        Hủy
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setCapturedImage(null)}
+                        className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        <RefreshCw className="h-5 w-5 mr-2" />
+                        Chụp Lại
+                      </button>
+                      <button
+                        onClick={submitFaceCapture}
+                        disabled={isCapturing}
+                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {isCapturing ? (
+                          <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-5 w-5 mr-2" />
+                        )}
+                        {isCapturing ? 'Đang Xử Lý...' : 'Xác Nhận'}
+                      </button>
+                    </>
                   )}
                 </div>
+
+                {/* Debug Info */}
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm">
+                  <h4 className="font-medium text-gray-900 mb-2">Debug Info:</h4>
+                  <div className="space-y-1 text-gray-600">
+                    <p>Camera Stream: {cameraStream ? '✅ Active' : '❌ Inactive'}</p>
+                    <p>Video Element: {videoRef.current ? '✅ Ready' : '❌ Not Ready'}</p>
+                    <p>Video Dimensions: {videoRef.current ? `${videoRef.current.videoWidth}x${videoRef.current.videoHeight}` : 'N/A'}</p>
+                    <p>Video Playing: {videoRef.current ? (videoRef.current.paused ? '❌ Paused' : '✅ Playing') : 'N/A'}</p>
+                    <p>Ready State: {videoRef.current ? videoRef.current.readyState : 'N/A'}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="btn-secondary flex-1"
-                disabled={isSubmitting}
-              >
-                Hủy
-              </button>
-              <button
-                type="submit"
-                className="btn-primary flex-1"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Đang xử lý...' : 'Đăng ký'}
-              </button>
-            </div>
-          </form>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Create User Form Modal */}
+      {showCreateForm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Tạo Tài Khoản Nhân Viên Mới</h3>
+              
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tên đăng nhập</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="john_doe"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Họ và tên</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="John Doe"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="john@company.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Vai trò</label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="user">Nhân viên</option>
+                    <option value="admin">Quản trị viên</option>
+                  </select>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <UserPlus className="h-4 w-4 mr-2" />
+                    )}
+                    {isLoading ? 'Đang tạo...' : 'Tạo Tài Khoản'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateForm(false)}
+                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

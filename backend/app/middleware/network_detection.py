@@ -36,12 +36,12 @@ class NetworkDetector:
                         ipaddress.ip_network(range_str, strict=False)
                         validated_ranges.append(range_str)
                     except ValueError:
-                        print(f"Warning: Invalid IP range in config: {range_str}")
+                        continue  # Skip invalid IP ranges
                 
                 if validated_ranges:
                     return validated_ranges
-            except Exception as e:
-                print(f"Error parsing INTERNAL_IP_RANGES: {e}")
+            except Exception:
+                pass  # Use default ranges if parsing fails
         
         return self.default_internal_ranges
     

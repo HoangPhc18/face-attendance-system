@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/apiService';
+import AdminLayout from './AdminLayout';
 import { 
   Users, 
   Calendar, 
@@ -31,21 +32,51 @@ const AdminDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      const [dashboardStats, systemOverview, pendingFaces] = await Promise.all([
+      const [dashboardStats, systemOverview, usersWithoutFace, leaveRequests, systemLogs] = await Promise.all([
         apiService.getDashboardStats(),
         apiService.getSystemOverview(),
-        apiService.getPendingFaces()
+        apiService.getUsersWithoutFace(),
+        apiService.getLeaveRequests({ status: 'pending', limit: 5 }),
+        apiService.getSystemLogs({ limit: 10 })
       ]);
 
-      setStats({ ...dashboardStats, ...systemOverview });
-      setPendingApprovals(pendingFaces.pending_faces || []);
+      setStats({ 
+        ...dashboardStats.data, 
+        ...systemOverview.data,
+        usersWithoutFace: usersWithoutFace.users_without_face?.length || 0,
+        pendingLeaveRequests: leaveRequests.data?.filter(req => req.status === 'pending').length || 0
+      });
       
-      // Mock recent activity - replace with actual API call
-      setRecentActivity([
-        { id: 1, type: 'check_in', user: 'Nguyễn Văn A', time: '08:30', status: 'success' },
-        { id: 2, type: 'check_out', user: 'Trần Thị B', time: '17:45', status: 'success' },
-        { id: 3, type: 'face_enrollment', user: 'Lê Văn C', time: '14:20', status: 'pending' },
+      setPendingApprovals([
+        ...usersWithoutFace.users_without_face?.map(user => ({
+          id: user.id,
+          type: 'face_enrollment',
+          user: user.full_name,
+          username: user.username,
+          time: new Date(user.created_at).toLocaleTimeString(),
+          status: 'pending'
+        })) || [],
+        ...leaveRequests.data?.filter(req => req.status === 'pending').map(req => ({
+          id: req.id,
+          type: 'leave_request',
+          user: req.user_name,
+          reason: req.reason,
+          dates: `${req.start_date} - ${req.end_date}`,
+          time: new Date(req.created_at).toLocaleTimeString(),
+          status: 'pending'
+        })) || []
       ]);
+      
+      // Recent activity from system logs
+      setRecentActivity(systemLogs.data?.map(log => ({
+        id: log.id,
+        type: log.action,
+        user: log.user_info || 'System',
+        time: new Date(log.timestamp).toLocaleTimeString(),
+        status: log.level === 'ERROR' ? 'error' : 'success',
+        message: log.message
+      })) || []);
+      
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -81,7 +112,8 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <AdminLayout>
+      <div className="max-w-7xl mx-auto p-6">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -307,7 +339,8 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </AdminLayout>
   );
 };
 

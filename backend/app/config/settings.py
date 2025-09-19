@@ -10,6 +10,7 @@ class Config:
     """Base configuration class"""
     # Flask settings
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key-here-change-in-production'
+    FLASK_ENV = os.getenv('FLASK_ENV', 'development')
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
     TESTING = False
     
@@ -19,12 +20,21 @@ class Config:
     
     # Database
     DB_HOST = os.getenv('DB_HOST', 'localhost')
-    DB_PORT = os.getenv('DB_PORT', '5432')
+    DB_PORT = os.getenv('DB_PORT', '3306')  # Default to MySQL port
     DB_NAME = os.getenv('DB_NAME', 'face_attendance_db')
-    DB_USER = os.getenv('DB_USER', 'postgres')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
+    DB_USER = os.getenv('DB_USER', 'root')  # Default to MySQL user
+    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
     
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL') or f'mysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+    # Auto-detect database type from port or explicit URL
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    if DATABASE_URL:
+        SQLALCHEMY_DATABASE_URI = DATABASE_URL
+    else:
+        # Default to MySQL unless port suggests PostgreSQL
+        if DB_PORT == '5432':
+            SQLALCHEMY_DATABASE_URI = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+        else:
+            SQLALCHEMY_DATABASE_URI = f'mysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Upload settings

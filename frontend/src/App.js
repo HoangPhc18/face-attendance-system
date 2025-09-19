@@ -8,7 +8,12 @@ import Navbar from './components/layout/Navbar';
 // Page Components
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import AdminIndex from './components/admin/AdminIndex';
 import AdminDashboard from './components/admin/AdminDashboard';
+import EmployeeManagement from './components/admin/EmployeeManagement';
+import LeaveRequestManagement from './components/admin/LeaveRequestManagement';
+import ReportsAnalytics from './components/admin/ReportsAnalytics';
+import SystemLogs from './components/admin/SystemLogs';
 import EmployeeDashboard from './components/dashboard/EmployeeDashboard';
 import FaceAttendance from './components/attendance/FaceAttendance';
 import FaceEnrollmentManager from './components/face-enrollment/FaceEnrollmentManager';
@@ -153,7 +158,63 @@ function App() {
                 path="/admin" 
                 element={
                   <ProtectedRoute requireAdmin={true}>
+                    <AdminIndex />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/dashboard" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/users" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <EmployeeManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/employees" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <EmployeeManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/leave-requests" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <LeaveRequestManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/reports" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <ReportsAnalytics />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/analytics" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <ReportsAnalytics />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/logs" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <SystemLogs />
                   </ProtectedRoute>
                 } 
               />

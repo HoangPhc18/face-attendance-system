@@ -18,6 +18,7 @@ def register_blueprints(app):
     from .attendance_extended import attendance_extended_bp
     from .face_enrollment_extended import face_enrollment_extended_bp
     from ..liveness_detection import liveness_bp
+    from .face_auth import face_auth_bp
     from .test import test_bp
     
     # Register blueprints with URL prefixes
@@ -36,4 +37,5 @@ def register_blueprints(app):
     app.register_blueprint(attendance_extended_bp, url_prefix='/api/attendance/extended')
     app.register_blueprint(face_enrollment_extended_bp, url_prefix='/api/face_enrollment/extended')
     app.register_blueprint(liveness_bp, url_prefix='/api/liveness')
+    app.register_blueprint(face_auth_bp, url_prefix='/api/face_auth')
     app.register_blueprint(test_bp, url_prefix='/api/test')

@@ -15,9 +15,19 @@ def get_users(current_user_id):
         with get_db_cursor() as cursor:
             # Get all users
             cursor.execute("""
-                SELECT id, username, full_name, email, role, created_at, updated_at
-                FROM users 
-                ORDER BY created_at DESC
+                SELECT u.id, u.username, u.full_name, u.email, u.role, u.created_at, u.updated_at,
+                       CASE WHEN f.id IS NOT NULL THEN true ELSE false END as has_face,
+                       u.employee_id, u.department, u.position,
+                       u.allow_password_login, u.allow_face_only, u.require_password_for_external,
+                       CASE 
+                           WHEN u.password_hash IS NULL AND u.allow_face_only = true THEN 'FACE_ONLY'
+                           WHEN u.password_hash IS NOT NULL AND u.allow_password_login = true THEN 'HYBRID'
+                           WHEN u.role = 'admin' THEN 'ADMIN'
+                           ELSE 'OTHER'
+                       END as access_type
+                FROM users u
+                LEFT JOIN faces f ON u.id = f.user_id
+                ORDER BY u.created_at DESC
             """)
             
             users = cursor.fetchall()
@@ -31,7 +41,15 @@ def get_users(current_user_id):
                     'email': user[3],
                     'role': user[4],
                     'created_at': user[5].isoformat() if user[5] else None,
-                    'updated_at': user[6].isoformat() if user[6] else None
+                    'updated_at': user[6].isoformat() if user[6] else None,
+                    'has_face': user[7],
+                    'employee_id': user[8],
+                    'department': user[9],
+                    'position': user[10],
+                    'allow_password_login': user[11],
+                    'allow_face_only': user[12],
+                    'require_password_for_external': user[13],
+                    'access_type': user[14]
                 })
             
             return create_response(True, {
@@ -199,7 +217,7 @@ def create_user(current_user_id):
     """Create new user (admin only)"""
     try:
         data = request.get_json()
-        required_fields = ['username', 'full_name', 'email', 'password']
+        required_fields = ['username', 'full_name', 'email']
         
         if not validate_required_fields(data, required_fields):
             return create_response(False, error='Missing required fields', status_code=400)
@@ -213,30 +231,74 @@ def create_user(current_user_id):
             if cursor.fetchone():
                 return create_response(False, error='Username or email already exists', status_code=400)
             
-            # Hash password
-            hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt())
+            # Determine access type
+            access_type = data.get('access_type', 'FACE_ONLY')  # Default to face-only
+            password = data.get('password')
+            
+            # Hash password if provided
+            hashed_password = None
+            if password:
+                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
+            # Set access flags based on type
+            if access_type == 'FACE_ONLY':
+                allow_password_login = False
+                allow_face_only = True
+                require_password_for_external = True
+            elif access_type == 'HYBRID':
+                allow_password_login = True
+                allow_face_only = True
+                require_password_for_external = True
+                if not hashed_password:
+                    return create_response(False, error='Password required for HYBRID users', status_code=400)
+            else:  # ADMIN
+                allow_password_login = True
+                allow_face_only = True
+                require_password_for_external = False
+                if not hashed_password:
+                    return create_response(False, error='Password required for ADMIN users', status_code=400)
+            
+            # Generate employee ID if not provided
+            employee_id = data.get('employee_id')
+            if not employee_id:
+                # Get next employee number
+                cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'user'")
+                user_count = cursor.fetchone()[0]
+                employee_id = f"EMP{str(user_count + 1).zfill(3)}"
             
             # Create user
             cursor.execute("""
-                INSERT INTO users (username, full_name, email, password_hash, role, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO users (
+                    username, full_name, email, password_hash, role, 
+                    allow_password_login, allow_face_only, require_password_for_external,
+                    employee_id, department, position, created_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (
                 data['username'],
                 data['full_name'], 
                 data['email'],
-                hashed_password.decode('utf-8'),
+                hashed_password,
                 data.get('role', 'user'),
+                allow_password_login,
+                allow_face_only,
+                require_password_for_external,
+                employee_id,
+                data.get('department', 'General'),
+                data.get('position', 'Employee'),
                 datetime.now()
             ))
             
             user_id = cursor.fetchone()[0]
             
-            log_activity('INFO', f'User {user_id} created by admin {current_user_id}', 'admin')
+            log_activity('INFO', f'User {user_id} ({access_type}) created by admin {current_user_id}', 'admin')
             
             return create_response(True, {
-                'message': 'User created successfully',
-                'user_id': user_id
+                'message': f'{access_type} user created successfully',
+                'user_id': user_id,
+                'employee_id': employee_id,
+                'access_type': access_type
             })
             
     except Exception as e:

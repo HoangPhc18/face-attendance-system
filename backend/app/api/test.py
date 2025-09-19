@@ -1,5 +1,6 @@
 # Test API endpoints without database dependency
 from flask import Blueprint, jsonify
+from datetime import datetime
 from ..core.utils import create_response
 
 test_bp = Blueprint('test', __name__)
@@ -9,8 +10,9 @@ def health_check():
     """Simple health check endpoint"""
     return create_response(True, {
         'status': 'healthy',
-        'message': 'Backend server is running',
-        'timestamp': '2025-09-12T16:33:29+07:00'
+        'message': 'Face Attendance System Backend is running',
+        'timestamp': datetime.now().isoformat(),
+        'version': '1.0.0'
     })
 
 @test_bp.route('/ping', methods=['GET'])
@@ -22,27 +24,46 @@ def ping():
 def list_endpoints():
     """List available API endpoints"""
     endpoints = {
-        'auth': [
-            '/api/auth/login',
-            '/api/auth/network-status',
-            '/api/auth/verify'
+        'authentication': [
+            'POST /api/auth/login',
+            'GET /api/auth/verify',
+            'GET /api/auth/network-status'
         ],
-        'liveness': [
-            '/api/liveness/status',
-            '/api/liveness/check_image',
-            '/api/liveness/check_frames'
+        'attendance': [
+            'POST /api/attendance/check-in',
+            'GET /api/attendance/history',
+            'GET /api/attendance/stats'
         ],
-        'test': [
-            '/api/test/health',
-            '/api/test/ping',
-            '/api/test/endpoints'
+        'face_enrollment': [
+            'POST /api/face_enrollment/create-user (admin only)',
+            'POST /api/face_enrollment/capture-face (admin only)',
+            'GET /api/face_enrollment/users-without-face (admin only)',
+            'GET /api/face_enrollment/user-status/<user_id> (admin only)'
         ],
         'admin': [
-            '/api/admin/users (requires auth)',
-            '/api/admin/stats (requires auth)'
+            'GET /api/admin/users (admin only)',
+            'GET /api/admin/stats (admin only)',
+            'POST /api/admin/users (admin only)'
+        ],
+        'reports': [
+            'GET /api/reports/attendance',
+            'GET /api/reports/salary',
+            'GET /api/reports/dashboard'
+        ],
+        'liveness': [
+            'GET /api/liveness/status',
+            'POST /api/liveness/check_image',
+            'POST /api/liveness/check_frames'
+        ],
+        'system': [
+            'GET /api/test/health',
+            'GET /api/test/ping',
+            'GET /api/test/endpoints'
         ]
     }
     return create_response(True, {
-        'message': 'Available API endpoints',
-        'endpoints': endpoints
+        'message': 'Face Attendance System API Endpoints',
+        'total_endpoints': sum(len(v) for v in endpoints.values()),
+        'endpoints': endpoints,
+        'documentation': '/api/docs (if available)'
     })

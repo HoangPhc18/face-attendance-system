@@ -285,8 +285,8 @@ def log_activity(level, message, module=None):
                 "INSERT INTO logs (level, message, module) VALUES (%s, %s, %s)",
                 (level, message, module)
             )
-    except Exception as e:
-        print(f"Failed to log activity: {e}")
+    except Exception:
+        pass  # Silent fail for logging
 
 def json_serial(obj):
     """JSON serializer for objects not serializable by default json code"""

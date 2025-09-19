@@ -47,6 +47,18 @@ class ApiService {
     return response.data;
   }
 
+  // Face-based login (Internal network only)
+  async faceLogin(imageData) {
+    const response = await this.api.post('/api/face_auth/face-login', {
+      image: imageData
+    });
+    if (response.data.success && response.data.data.token) {
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.data.user));
+    }
+    return response.data;
+  }
+
   async logout() {
     try {
       await this.api.post('/api/auth/logout');
@@ -74,20 +86,49 @@ class ApiService {
 
   // Face Attendance APIs (Internal Network Only)
   async faceCheckIn(imageData) {
-    const response = await this.api.post('/api/attendance/check-in', {
-      image: imageData
+    const response = await this.api.post('/api/face_auth/face-attendance', {
+      image: imageData,
+      action: 'check_in'
     });
     return response.data;
   }
 
   async faceCheckOut(imageData) {
-    const response = await this.api.post('/api/attendance/check-out', {
-      image: imageData
+    const response = await this.api.post('/api/face_auth/face-attendance', {
+      image: imageData,
+      action: 'check_out'
     });
     return response.data;
   }
 
-  // Face Enrollment APIs (Admin Only)
+  // Get network-based features
+  async getNetworkFeatures() {
+    const response = await this.api.get('/api/face_auth/network-features');
+    return response.data;
+  }
+
+  // Face Enrollment APIs (Admin Only) - NEW WORKFLOW
+  async createUser(userData) {
+    const response = await this.api.post('/api/face_enrollment/create-user', userData);
+    return response.data;
+  }
+
+  async captureFace(captureData) {
+    const response = await this.api.post('/api/face_enrollment/capture-face', captureData);
+    return response.data;
+  }
+
+  async getUsersWithoutFace() {
+    const response = await this.api.get('/api/face_enrollment/users-without-face');
+    return response.data;
+  }
+
+  async getUserEnrollmentStatus(userId) {
+    const response = await this.api.get(`/api/face_enrollment/user-status/${userId}`);
+    return response.data;
+  }
+
+  // Legacy Face Enrollment APIs (for backward compatibility)
   async enrollFace(faceData) {
     const response = await this.api.post('/api/face_enrollment/enroll', faceData);
     return response.data;
@@ -99,8 +140,8 @@ class ApiService {
   }
 
   async getPendingFaces() {
-    const response = await this.api.get('/api/face_enrollment/pending');
-    return response.data;
+    // Redirect to new endpoint
+    return this.getUsersWithoutFace();
   }
 
   async approveFace(faceId, userData) {
@@ -211,7 +252,7 @@ class ApiService {
     return response.data;
   }
 
-  async createUser(userData) {
+  async createUserAdmin(userData) {
     const response = await this.api.post('/api/admin/users', userData);
     return response.data;
   }

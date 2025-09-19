@@ -1,36 +1,52 @@
-# Flask và các extension
+# =============================================================================
+# FACE ATTENDANCE SYSTEM - BACKEND DEPENDENCIES
+# =============================================================================
+
+# Flask Framework & Extensions
 Flask==2.3.3
 Flask-CORS==4.0.0
-Flask-SQLAlchemy
-Flask-Migrate
-Flask-JWT-Extended
-python-dotenv
-Pillow==10.0.1
+Flask-SQLAlchemy==3.0.5
+Flask-Migrate==4.0.5
+Flask-JWT-Extended==4.5.2
+
+# Environment & Configuration
+python-dotenv==1.0.0
+
+# Security & Authentication
 bcrypt==4.0.1
-mysql-connector-python
-# Xử lý ảnh và nhận diện khuôn mặt
-face-recognition
-opencv-python
-dlib
-scipy
-numpy
-imutils
-scikit-learn
+PyJWT==2.8.0
 
-# Deep Learning (chọn 1 trong 2, tùy bạn dùng TensorFlow hay PyTorch)
-tensorflow
-# torch
+# Database Drivers
+mysql-connector-python==8.1.0
+psycopg2-binary==2.9.7
 
-# Tích hợp AI (OpenAI, Gemini)
-openai
-google-generativeai
+# Image Processing & Computer Vision
+Pillow==10.0.1
+opencv-python==4.8.1.78
+face-recognition==1.3.0
+dlib==19.24.2
+imutils==0.5.4
 
-# Báo cáo và xử lý dữ liệu
-pandas
-openpyxl
+# Scientific Computing
+numpy==1.24.3
+scipy==1.11.2
+scikit-learn==1.3.0
 
-# Kết nối HTTP
-requests
+# Deep Learning (Optional - for advanced features)
+tensorflow==2.13.0
+# torch==2.0.1  # Alternative to TensorFlow
 
-# PostgreSQL driver cho SQLAlchemy
-psycopg2-binary
+# AI Integration (Optional)
+openai==0.27.8
+google-generativeai==0.1.0
+
+# Data Processing & Reports
+pandas==2.0.3
+openpyxl==3.1.2
+
+# HTTP Requests
+requests==2.31.0
+
+# Development & Testing (Optional)
+# pytest==7.4.0
+# pytest-flask==1.2.0

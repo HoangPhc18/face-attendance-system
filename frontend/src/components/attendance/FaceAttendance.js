@@ -1,9 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
-import Webcam from 'react-webcam';
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/apiService';
-import { Camera, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Camera, Clock, CheckCircle, XCircle, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 
 const FaceAttendance = () => {
   const { isInternalNetwork, user } = useAuth();
@@ -40,11 +39,15 @@ const FaceAttendance = () => {
         setLastAction({
           type: 'check_in',
           time: new Date().toLocaleTimeString('vi-VN'),
-          user: response.user_name
+          user: response.data.user.full_name,
+          confidence: response.data.face_match_confidence
         });
-        toast.success(`Chấm công vào thành công! Xin chào ${response.user_name}`);
+        toast.success(
+          `Chấm công vào thành công!\nXin chào ${response.data.user.full_name}\nĐộ chính xác: ${response.data.face_match_confidence}%`,
+          { duration: 3000 }
+        );
       } else {
-        toast.error(response.message || 'Không nhận diện được khuôn mặt');
+        toast.error(response.error || 'Không nhận diện được khuôn mặt');
       }
     } catch (error) {
       console.error('Check-in failed:', error);
@@ -76,12 +79,17 @@ const FaceAttendance = () => {
         setLastAction({
           type: 'check_out',
           time: new Date().toLocaleTimeString('vi-VN'),
-          user: response.user_name,
-          workHours: response.work_hours
+          user: response.data.user.full_name,
+          confidence: response.data.face_match_confidence,
+          workHours: response.data.work_hours
         });
-        toast.success(`Chấm công ra thành công! Tạm biệt ${response.user_name}`);
+        const workHoursText = response.data.work_hours ? ` (Làm việc: ${response.data.work_hours} giờ)` : '';
+        toast.success(
+          `Chấm công ra thành công!\nTạm biệt ${response.data.user.full_name}${workHoursText}\nĐộ chính xác: ${response.data.face_match_confidence}%`,
+          { duration: 3000 }
+        );
       } else {
-        toast.error(response.message || 'Không nhận diện được khuôn mặt');
+        toast.error(response.error || 'Không nhận diện được khuôn mặt');
       }
     } catch (error) {
       console.error('Check-out failed:', error);
